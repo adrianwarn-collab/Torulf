@@ -21,12 +21,14 @@
    COLOUR and TYPE: krita #f1efe9, järnsvart, kettlebellröd accent, stålblå stöd; Archivo 900/500.
    LAYOUT: en kolumn, max 720px, fast flikrad nederst, kort som går kant till kant på mobil. */
 :root{color-scheme:light dark;
+/* --badge-h: höjden på Netlifys "Powered by"-bricka (0 när den saknas), sätts av badgeFix() */
+--badge-h:0px;--nav-bot:max(env(safe-area-inset-bottom),var(--badge-h));
 --bg:light-dark(#f1efe9,#121315);--panel:light-dark(#ffffff,#1d1f22);--ink:light-dark(#141414,#efede8);
 --mut:light-dark(#5e5c57,#a5a39d);--line:light-dark(#dedad1,#2e3135);--red:light-dark(#d62f26,#ff5a48);
 --blue:light-dark(#2f5577,#7fb0dc);--soft:light-dark(#e7e3da,#26292d);--ok:light-dark(#2f6b45,#6fcf92)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(84px + var(--nav-bot))}
 h1,h2,h3{margin:0;line-height:1.08;text-wrap:balance}
 h1{font-size:clamp(30px,8vw,44px);font-weight:900;letter-spacing:-.02em}
 h2{font-size:24px;font-weight:800}
@@ -83,7 +85,7 @@ label{font-size:14px;color:var(--mut);display:block;margin:10px 0 4px}
 .chk.on{background:var(--ok);border-color:var(--ok);color:var(--bg)}
 .hint{font-size:14px;background:var(--soft);border-radius:10px;padding:8px 10px;margin-top:8px}
 details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
-.timer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 10px 8px 18px;display:flex;gap:10px;align-items:center;z-index:20;box-shadow:0 6px 20px #0004}
+.timer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--nav-bot));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 10px 8px 18px;display:flex;gap:10px;align-items:center;z-index:20;box-shadow:0 6px 20px #0004}
 .timer b{font-size:22px;font-variant-numeric:tabular-nums;min-width:64px}
 .timer button{background:transparent;color:var(--bg);border-color:#fff4;min-height:38px}
 /* bank */
@@ -110,12 +112,12 @@ details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;alig
 .stats b{display:block;font-size:28px;font-weight:900}
 .stats span{font-size:13px;color:var(--mut)}
 /* nav */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:var(--nav-bot);z-index:10}
 nav.tabs button{border:0;border-radius:0;background:none;display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--mut);min-height:64px;padding:6px 2px}
 nav.tabs button svg{width:24px;height:24px}
 nav.tabs button.on{color:var(--red)}
 .sheet{position:fixed;inset:0;background:#0007;z-index:30;display:flex;align-items:flex-end;justify-content:center}
-.sheet .in{background:var(--bg);width:100%;max-width:720px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
+.sheet .in{background:var(--bg);width:100%;max-width:720px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom) + var(--badge-h))}
 .daypick{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .daypick button{padding:0;font-weight:800}
 .daypick button.on{background:var(--red);border-color:var(--red);color:#fff}
@@ -831,6 +833,13 @@ document.addEventListener('change',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 S.opens=S.opens||{};S.opens[today()]=true;save();
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+// Netlifys gratisplan lägger in en "Powered by Netlify"-bricka nere till höger som annars
+// täcker flikarna och knappar längst ned. Mät brickan och lägg flikraden, vilotimern och
+// formulären ovanför den så länge den syns.
+function badgeFix(){const el=document.getElementById('nl-badge-frame');let px=0;
+ if(el){const r=el.getBoundingClientRect(),cs=getComputedStyle(el);if(r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden')px=Math.ceil(r.height)}
+ document.documentElement.style.setProperty('--badge-h',px+'px')}
+badgeFix();setInterval(badgeFix,1500);addEventListener('resize',badgeFix);
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){S.opens[today()]=true;save();if(!$('#sheet')&&!document.activeElement.matches('input,textarea'))render()}});
 if(S.active)tab='pass';
