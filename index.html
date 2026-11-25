@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17191c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Torulf">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Torulf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: en peppande träningskompis – rak, kort, aldrig tjatig.
+   IDEA: en sliten träningsdagbok/whiteboard på gymmet – veckan som tavla, passet som kort.
+   PICTURE: veckoremsan med sju dagkort och dagens pass överst; kettlebell som märke.
+   COLOUR and TYPE: krita #f1efe9, järnsvart, kettlebellröd accent, stålblå stöd; Archivo 900/500.
+   LAYOUT: en kolumn, max 720px, fast flikrad nederst, kort som går kant till kant på mobil. */
+:root{color-scheme:light dark;
+--bg:light-dark(#f1efe9,#121315);--panel:light-dark(#ffffff,#1d1f22);--ink:light-dark(#141414,#efede8);
+--mut:light-dark(#5e5c57,#a5a39d);--line:light-dark(#dedad1,#2e3135);--red:light-dark(#d62f26,#ff5a48);
+--blue:light-dark(#2f5577,#7fb0dc);--soft:light-dark(#e7e3da,#26292d);--ok:light-dark(#2f6b45,#6fcf92)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+h1,h2,h3{margin:0;line-height:1.08;text-wrap:balance}
+h1{font-size:clamp(30px,8vw,44px);font-weight:900;letter-spacing:-.02em}
+h2{font-size:24px;font-weight:800}
+h3{font-size:17px;font-weight:700}
+p{margin:.3em 0}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 14px) max(16px,env(safe-area-inset-left)) 6px;max-width:720px;margin:0 auto}
+header.top svg{width:68px;height:68px;flex:none}
+.hero{display:block;width:min(220px,60vw);height:auto;margin:0 auto 8px}
+header.top .sub{color:var(--mut);font-size:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.muted{color:var(--mut)}.small{font-size:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grow{flex:1}
+button,.btn{font:inherit;font-weight:600;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);min-height:44px;padding:8px 14px;cursor:pointer}
+button.primary{background:var(--red);border-color:var(--red);color:#fff}
+button.ghost{background:transparent}
+button.sm{min-height:36px;padding:4px 10px;font-size:14px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:8px 10px;width:100%}
+textarea{min-height:90px}
+label{font-size:14px;color:var(--mut);display:block;margin:10px 0 4px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.chip{flex:none;border-radius:999px;min-height:38px;padding:4px 14px;font-size:14px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* week */
+.week{display:grid;gap:8px}
+.day{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;width:100%;min-height:64px}
+.day .dn{font-weight:900;font-size:20px;line-height:1}.day .dd{font-size:13px;color:var(--mut)}
+.day.rest{background:transparent;border-style:dashed}
+.day.today{border:2px solid var(--red)}
+.tag{font-size:13px;border-radius:999px;padding:2px 10px;background:var(--soft);white-space:nowrap}
+.tag.done{background:var(--ok);color:var(--bg)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px;margin-top:10px}
+.badge{text-align:center;font-size:13px;line-height:1.25}
+.badge svg{width:56px;height:56px;display:block;margin:0 auto 4px}
+.badge.off{opacity:.45}
+.badge b{display:block;font-size:13px}
+.report{white-space:pre-wrap;font:14px/1.5 Archivo,system-ui,sans-serif;background:var(--soft);border-radius:10px;padding:12px;margin:10px 0}
+.celebrate{text-align:center}
+.celebrate .badge{display:inline-block;width:110px;vertical-align:top;margin:6px}
+.block{display:flex;gap:6px;margin:10px 0 4px}
+.block span{flex:1;height:10px;border-radius:5px;background:var(--soft)}
+.block span.on{background:var(--red)}.block span.past{background:var(--ink);opacity:.35}
+.nudge{border-left:5px solid var(--blue);background:var(--panel);border-radius:12px;padding:12px 14px;margin:10px 0}
+.nudge b{display:block}
+/* session */
+.ex{border-top:1px solid var(--line);padding:14px 0}
+.ex:first-of-type{border-top:0}
+.sets{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 48px;gap:8px;align-items:center;margin-top:8px}
+.sets .h{font-size:12px;color:var(--mut)}
+.chk{width:44px;height:44px;border-radius:10px;padding:0;display:grid;place-items:center}
+.chk.on{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.hint{font-size:14px;background:var(--soft);border-radius:10px;padding:8px 10px;margin-top:8px}
+details summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+.timer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 10px 8px 18px;display:flex;gap:10px;align-items:center;z-index:20;box-shadow:0 6px 20px #0004}
+.timer b{font-size:22px;font-variant-numeric:tabular-nums;min-width:64px}
+.timer button{background:transparent;color:var(--bg);border-color:#fff4;min-height:38px}
+/* bank */
+.exlist{display:grid;gap:0}
+.exitem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line);text-align:left;background:none;border-radius:0;border-width:0 0 1px;width:100%}
+.eq{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap;color:var(--mut)}
+/* body */
+.glasses{display:flex;gap:6px;flex-wrap:wrap}
+.glass{width:40px;height:52px;padding:0;border-radius:6px 6px 12px 12px;background:var(--bg);position:relative;overflow:hidden}
+.glass i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--blue);transition:height .3s}
+.glass.on i{height:78%}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper b{font-size:34px;font-weight:900;min-width:70px;text-align:center;font-variant-numeric:tabular-nums}
+.bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:120px;margin-top:10px}
+.bars div{background:var(--blue);border-radius:6px 6px 2px 2px;position:relative;min-height:3px}
+.bars div.good{background:var(--ok)}
+.barl{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;font-size:12px;color:var(--mut);text-align:center}
+.tip{border-top:1px solid var(--line);padding:6px 0}
+.tip:first-child{border-top:0}
+.tip p{color:var(--mut)}
+.big{font-size:clamp(34px,10vw,52px);font-weight:900;line-height:1}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stats div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stats b{display:block;font-size:28px;font-weight:900}
+.stats span{font-size:13px;color:var(--mut)}
+/* nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav.tabs button{border:0;border-radius:0;background:none;display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--mut);min-height:64px;padding:6px 2px}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--red)}
+.sheet{position:fixed;inset:0;background:#0007;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sheet .in{background:var(--bg);width:100%;max-width:720px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
+.daypick{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.daypick button{padding:0;font-weight:800}
+.daypick button.on{background:var(--red);border-color:var(--red);color:#fff}
+.dayset{display:grid;grid-template-columns:60px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;margin-top:8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.toast{position:fixed;top:calc(env(safe-area-inset-top) + 14px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:40;font-weight:600}
+.empty{text-align:center;padding:24px 10px;color:var(--mut)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+<svg viewBox="0 0 120 120" aria-hidden="true"><g id="tlogo"><defs>
+<clipPath id="tc"><circle cx="60" cy="64" r="46"/></clipPath>
+<radialGradient id="tg" cx=".5" cy=".35" r=".7"><stop offset="0" stop-color="#f0b98f"/><stop offset="1" stop-color="#c98458"/></radialGradient>
+<linearGradient id="th" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d1d9"/><stop offset="1" stop-color="#6c7884"/></linearGradient>
+<linearGradient id="tn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7e6"/><stop offset="1" stop-color="#d9c7a3"/></linearGradient>
+</defs>
+<circle cx="60" cy="64" r="49" fill="#8a96a3"/>
+<g clip-path="url(#tc)">
+<circle cx="60" cy="64" r="46" fill="#17191c"/>
+<g fill="#d62f26"><path d="M60 64 L60 18 A46 46 0 0 1 92.5 31.5Z"/><path d="M60 64 L106 64 A46 46 0 0 1 92.5 96.5Z"/><path d="M60 64 L60 110 A46 46 0 0 1 27.5 96.5Z"/><path d="M60 64 L14 64 A46 46 0 0 1 27.5 31.5Z"/></g>
+<g stroke="#0006" stroke-width=".8"><path d="M30 20V110M42 18V110M54 18V110M66 18V110M78 18V110M90 20V110"/></g>
+<path d="M26 120 L31 94 Q60 82 89 94 L94 120Z" fill="url(#tg)" stroke="#141414" stroke-width="1.6"/>
+<path d="M44 100 Q52 104 59 100 M61 100 Q68 104 76 100 M60 92 V110" fill="none" stroke="#9a5c38" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M28 96 Q33 86 40 92 Q45 84 51 90 Q60 83 69 90 Q75 84 80 92 Q87 86 92 96 L92 99 Q60 90 28 99Z" fill="#6b4a32" stroke="#141414" stroke-width="1.4"/>
+</g>
+<circle cx="60" cy="64" r="49" fill="none" stroke="#141414" stroke-width="2"/>
+<g fill="#5d6874" stroke="#141414" stroke-width=".8"><circle cx="60" cy="13.5" r="2"/><circle cx="106.5" cy="64" r="2"/><circle cx="13.5" cy="64" r="2"/><circle cx="93" cy="30" r="2"/><circle cx="27" cy="30" r="2"/></g>
+<g id="ta" stroke="#141414" stroke-width="1.8" stroke-linejoin="round">
+<path d="M40 93 C30 99 13 99 9 87 L6 58 C5.5 50 18 49 18.5 57 L20 76 C25 66 39 69 42 82 Z" fill="url(#tg)"/>
+<path d="M21 76 C24 71 33 71 36 78" fill="none" stroke="#9a5c38" stroke-width="1.4"/>
+<path d="M14 79 C18 72 26 73 28 77" fill="none" stroke="#fff8" stroke-width="2" stroke-linecap="round"/>
+<rect x="4" y="44" width="16.5" height="15" rx="6" fill="url(#tg)"/>
+<path d="M8 49 h9 M8 53 h9" stroke="#9a5c38" stroke-width="1.1"/>
+<rect x="5" y="88" width="9" height="6" rx="2" fill="#c9a04a" transform="rotate(-12 9 91)"/>
+</g>
+<use href="#ta" transform="matrix(-1 0 0 1 120 0)"/>
+<g stroke="#141414" stroke-width="1.6" stroke-linejoin="round">
+<ellipse cx="60" cy="66" rx="13" ry="12.5" fill="url(#tg)"/>
+<path d="M45.5 66 Q45 90 60 96 Q75 90 74.5 66 Q70 77 60 77 Q50 77 45.5 66Z" fill="#d9772b"/>
+<path d="M60 95 l-3 4 3 4 -3 4 3 4 M60 95 l3 4 -3 4 3 4 -3 4" fill="#c25f1c"/>
+<rect x="56.5" y="110" width="7" height="4" rx="1.5" fill="#c9a04a"/>
+<path d="M50 76 Q55 72 60 75 Q65 72 70 76 Q65 79 60 77 Q55 79 50 76Z" fill="#b5581a"/>
+<path d="M60 77 V86 M54 80 Q55 88 57 92 M66 80 Q65 88 63 92" fill="none" stroke="#a24d17" stroke-width="1.1"/>
+<path d="M47 55 C35 54 22 45 20 25 C28 37 37 42 48 45Z" fill="url(#tn)"/>
+<path d="M73 55 C85 54 98 45 100 25 C92 37 83 42 72 45Z" fill="url(#tn)"/>
+<path d="M20 25 C22 30 24 33 27 35 L24 31Z M100 25 C98 30 96 33 93 35 L96 31Z" fill="#141414"/>
+<path d="M43 60 A17 17 0 0 1 77 60 Z" fill="url(#th)"/>
+<path d="M60 43 V60" stroke="#5d6874" stroke-width="2.2"/>
+<rect x="42" y="57" width="36" height="6" rx="2" fill="#5d6874"/>
+<path d="M57.5 61 h5 v12 q-2.5 2 -5 0Z" fill="#5d6874"/>
+</g>
+<g fill="#e8eef3"><circle cx="46" cy="60" r="1"/><circle cx="52" cy="60" r="1"/><circle cx="68" cy="60" r="1"/><circle cx="74" cy="60" r="1"/></g>
+<path d="M48.5 65.5 L55.5 67.5 M71.5 65.5 L64.5 67.5" stroke="#141414" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="52.5" cy="69.5" r="1.7" fill="#141414"/><circle cx="67.5" cy="69.5" r="1.7" fill="#141414"/></g></svg>
+<div><h1>Torulf</h1><div class="sub" id="hello">Din träningskompis</div></div>
+</header>
+<main class="wrap" id="app"></main>
+<div id="timerSlot"></div>
+<nav class="tabs" id="tabs"></nav>
+
+<script>
+{
+/* ---------- Övningsbank ---------- */
+// e: g=gym, k=kettlebell, b=kroppsvikt · t:1 = mäts i sekunder
+const BANK=[
+['knaboj','Knäböj med skivstång','Ben','knee','g','Fötter axelbrett, bröstet upp, knäna följer tårna. Gå så djupt du kan med rak rygg.'],
+['gobleth','Goblet squat med hantel','Ben','knee','g','Håll hanteln mot bröstet, sätt dig mellan hälarna, armbågarna innanför knäna.'],
+['benpress','Benpress','Ben','knee','g','Hela foten på plattan, sänk tills knäna är ca 90°, lås inte knäna i toppen.'],
+['hack','Hack squat-maskin','Ben','knee','g','Rygg mot dynan, kontrollerat ned, tryck ifrån genom hela foten.'],
+['front','Frontböj','Ben','knee','g','Stången vilar på framsidan av axlarna, armbågarna högt, rak överkropp.'],
+['gobletk','Goblet squat med kettlebell','Ben','knee','k','Håll i hornen mot bröstet. Lugnt ned, explosivt upp.'],
+['kbfront','Dubbel kettlebell front squat','Ben','knee','k','Klockorna i rack-position mot bröstet, spänn magen, djup böj.'],
+['kvboj','Knäböj kroppsvikt','Ben','knee','b','Armarna framåt för balans, sitt bakåt och ned, hälarna i golvet.'],
+['tempo','Tempoknäböj 3 sek ned','Ben','knee','b','Räkna tre sekunder på vägen ned, paus i botten, upp. Gör kroppsvikt tungt.'],
+['hoppboj','Hoppknäböj','Ben','knee','b','Böj, hoppa rakt upp, landa mjukt på framfoten och sjunk direkt ned i nästa.'],
+['rdl','Rumänsk marklyft skivstång','Baksida','hinge','g','Lätt böjda knän, skjut höften bakåt, stången nära benen, rak rygg.'],
+['mark','Marklyft','Baksida','hinge','g','Stången över mitten av foten, rak rygg, tryck golvet ifrån dig. Lär dig med lätt vikt och be en instruktör kolla.'],
+['rdlh','Rumänsk marklyft hantlar','Baksida','hinge','g','Som med stång men hantlarna längs benen. Känn sträckningen bak i låret.'],
+['hipt','Höftlyft med skivstång','Rumpa','hinge','g','Övre ryggen mot bänk, stången över höften, pressa upp och kläm rumpan.'],
+['bencurl','Bencurl i maskin','Baksida','hinge','g','Dynan ovanför hälarna, böj kontrollerat, sänk långsamt.'],
+['swing','Kettlebell swing','Baksida','hinge','k','Kraften kommer från höften, inte armarna. Snärta fram höften, klockan till brösthöjd.'],
+['kbmark','Kettlebell marklyft','Baksida','hinge','k','Klockan mellan fötterna, höften bakåt, rak rygg, res dig och kläm rumpan.'],
+['kbenben','Enbens rumänsk marklyft med kettlebell','Baksida','hinge','k','Stå på ett ben, fäll framåt med rak rygg, bakre benet bakåt som en våg.'],
+['bridge','Glute bridge','Rumpa','hinge','b','Ligg på rygg, fötterna nära rumpan, lyft höften och håll en sekund i toppen.'],
+['enbridge','Enbens höftlyft','Rumpa','hinge','b','Som glute bridge men ett ben i luften. Håll höften rak.'],
+['utfallh','Utfall med hantlar','Ben','lunge','g','Långt kliv, bakre knät mot golvet, främre knät över foten.'],
+['bulgh','Bulgarisk utfallsböj hantlar','Ben','lunge','g','Bakre foten på bänk, sjunk rakt ned. Tung men grym övning.'],
+['stepup','Step-up på låda','Ben','lunge','g','Hela foten på lådan, tryck upp med främre benet, inte med det bakre.'],
+['gutfall','Gående utfall','Ben','lunge','b','Kliv framåt växelvis, rak överkropp, kontroll i varje steg.'],
+['bakut','Bakåtutfall','Ben','lunge','b','Kliv bakåt, knät mot golvet, tryck tillbaka med främre benet. Snällt mot knäna.'],
+['bulgb','Bulgarisk utfallsböj kroppsvikt','Ben','lunge','b','Bakre foten på stol eller soffa, sjunk rakt ned.'],
+['kbutfall','Bakåtutfall med kettlebell','Ben','lunge','k','Håll klockan i goblet-grepp, kliv bakåt och sänk knät.'],
+['sidout','Sidoutfall','Ben','lunge','b','Kliv brett åt sidan, sitt ned i det benet, andra benet rakt.'],
+['bank','Bänkpress skivstång','Bröst','hpush','g','Skulderbladen ihop, fötterna i golvet, stången ned mot bröstbenet. Ha alltid spotter.'],
+['hantelp','Hantelpress plan bänk','Bröst','hpush','g','Hantlarna ned i bröstets yttre kant, pressa upp och lite inåt.'],
+['lutp','Lutande hantelpress','Bröst','hpush','g','Bänken på ca 30°, träffar övre bröstet. Kontroll hela vägen.'],
+['brostm','Bröstpress i maskin','Bröst','hpush','g','Handtagen i bröstnivå, pressa ut utan att låsa armbågarna.'],
+['dips','Dips','Bröst','hpush','g','Luta lite framåt, sänk tills axlarna är i höjd med armbågarna. Assisterad maskin funkar.'],
+['armh','Armhävningar','Bröst','hpush','b','Kroppen rak som en planka, bröstet nästan i golvet. På knä är helt okej.'],
+['armhupp','Armhävningar fötter upp','Bröst','hpush','b','Fötterna på stol eller säng – tyngre och mer övre bröst.'],
+['armhlut','Lutande armhävningar','Bröst','hpush','b','Händerna på bänk eller bord – lättare variant att bygga upp med.'],
+['kbgolv','Kettlebell golvpress','Bröst','hpush','k','Ligg på golvet, pressa klockan upp, armbågen nuddar golvet i botten.'],
+['milp','Militärpress stående','Axlar','vpush','g','Spänn rumpa och mage, pressa stången rakt upp, huvudet fram när den passerat.'],
+['axelh','Axelpress med hantlar sittande','Axlar','vpush','g','Rak rygg mot ryggstödet, pressa upp utan att svanka.'],
+['axelm','Axelpress i maskin','Axlar','vpush','g','Bra start för att lära rörelsen säkert.'],
+['landmine','Landmine press','Axlar','vpush','g','Stångens ena ände i hörnet, pressa snett uppåt-framåt. Snällt mot axlarna.'],
+['kbaxel','Kettlebell axelpress','Axlar','vpush','k','Från rack-position, pressa upp med handflatan framåt. En arm i taget.'],
+['kbpush','Kettlebell push press','Axlar','vpush','k','Liten knäböj, använd benen för att skjuta upp klockan.'],
+['pike','Pike-armhävningar','Axlar','vpush','b','Rumpan högt som ett upp-och-nedvänt V, sänk huvudet mot golvet.'],
+['pikeupp','Pike-armhävningar fötter upp','Axlar','vpush','b','Fötterna på stol gör det tyngre. Kontroll framför allt.'],
+['rodd','Skivstångsrodd','Rygg','hpull','g','Fäll fram ca 45°, rak rygg, dra stången mot naveln.'],
+['hantelr','Enarms hantelrodd','Rygg','hpull','g','Knä och hand på bänken, dra hanteln mot höften, inte mot axeln.'],
+['kabelr','Sittande kabelrodd','Rygg','hpull','g','Bröstet upp, dra handtaget mot magen, kläm skulderbladen.'],
+['brostr','Bröststödd rodd','Rygg','hpull','g','Bröstet mot dynan tar bort fusket. Dra med armbågarna.'],
+['kbrodd','Kettlebell rodd','Rygg','hpull','k','Fäll fram med rak rygg och dra klockan mot höften.'],
+['kbenr','Enarms kettlebell rodd','Rygg','hpull','k','Stöd med fri hand mot stol, dra och pausa i toppen.'],
+['omvr','Omvänd rodd under bord','Rygg','hpull','b','Ligg under ett stadigt bord, greppa kanten, dra bröstet upp. Testa att bordet håller.'],
+['supr','Superman-rodd','Rygg','hpull','b','Ligg på mage, lyft bröstet, dra armbågarna bakåt och kläm.'],
+['lats','Latsdrag','Rygg','vpull','g','Brett grepp, dra stången mot övre bröstet, luta dig lite bakåt.'],
+['latss','Latsdrag smalt grepp','Rygg','vpull','g','V-handtag, dra mot bröstet och tänk armbågarna ned i fickorna.'],
+['chinsa','Assisterade chins','Rygg','vpull','g','Maskinen eller gummiband hjälper dig. Hela vägen ned varje rep.'],
+['pullups','Pull-ups','Rygg','vpull','g','Häng med raka armar, dra bröstet mot stången. Byt till assisterade om det tar stopp.'],
+['negchins','Negativa chins','Rygg','vpull','g','Hoppa upp till toppläget och sänk dig så långsamt du kan, 3–5 sek.'],
+['rakarm','Rakarmsdrag i kabel','Rygg','vpull','g','Nästan raka armar, dra stången från ögonhöjd ned till låren.'],
+['kbpull','Kettlebell pullover','Rygg','vpull','k','Ligg på rygg, klockan över bröstet, sänk bakom huvudet med lätt böjda armar och dra tillbaka.'],
+['ytw','Y-T-W-lyft liggande','Rygg','vpull','b','Ligg på mage och lyft armarna i Y, T och W. Lätt men brinner.'],
+['sidol','Sidolyft med hantlar','Axlar','shoulders','g','Lyft ut till sidan till axelhöjd, lätt böjda armar. Lätt vikt, ingen gungning.'],
+['sidok','Sidolyft i kabel','Axlar','shoulders','g','En arm i taget, kabeln bakom kroppen, jämnt motstånd hela vägen.'],
+['halo','Kettlebell halo','Axlar','shoulders','k','Cirkla klockan runt huvudet, nära. Byt håll. Bra för axlar och rörlighet.'],
+['kbsidol','Sidolyft med kettlebell','Axlar','shoulders','k','Lätt klocka, håll i handtaget och lyft ut till sidan.'],
+['ylyft','Y-lyft på mage','Axlar','shoulders','b','Ligg på mage, armarna i Y, lyft och håll två sekunder.'],
+['face','Face pulls','Axlar','rear','g','Rep i kabel, dra mot ansiktet med armbågarna högt. Bra för hållningen.'],
+['omvfly','Omvända flyes med hantlar','Axlar','rear','g','Fäll fram, lyft hantlarna ut åt sidorna, kläm skulderbladen.'],
+['omvflym','Omvända flyes i maskin','Axlar','rear','g','Bröstet mot dynan, armarna ut och bak.'],
+['kbomvfly','Böjda sidolyft med kettlebell','Axlar','rear','k','Lätt klocka, fäll fram och lyft ut åt sidan.'],
+['tlyft','T-lyft på mage','Axlar','rear','b','Ligg på mage, armarna rakt ut som ett T, lyft och kläm.'],
+['flyes','Hantelflyes','Bröst','chest_iso','g','Lätt böjda armar, öppna brett som en kram och kläm ihop.'],
+['cross','Cable crossover','Bröst','chest_iso','g','Ett steg fram, för ihop handtagen framför bröstet.'],
+['pecdeck','Pec deck','Bröst','chest_iso','g','Armbågarna i brösthöjd, kläm ihop och håll en sekund.'],
+['bredarmh','Breda armhävningar','Bröst','chest_iso','b','Händerna bredare än axlarna, lugnt tempo.'],
+['kbsqueeze','Kettlebell squeeze press','Bröst','chest_iso','k','Kläm klockan mellan händerna mot bröstet och pressa upp.'],
+['curl','Bicepscurl med hantlar','Biceps','arms_bi','g','Armbågarna still längs sidan, curla upp och sänk långsamt.'],
+['hammer','Hammercurl','Biceps','arms_bi','g','Tummen uppåt, tränar även underarmen.'],
+['stangcurl','Stångcurl','Biceps','arms_bi','g','Ingen gungning med ryggen. Hellre lättare och snyggt.'],
+['kabelcurl','Kabelcurl','Biceps','arms_bi','g','Jämnt motstånd hela vägen, kläm i toppen.'],
+['kbcurl','Kettlebell curl','Biceps','arms_bi','k','Håll i hornen eller handtaget, armbågarna still.'],
+['kbhammer','Kettlebell hammercurl','Biceps','arms_bi','k','En klocka i varje hand, tummen upp.'],
+['omvrund','Omvänd rodd underhandsgrepp','Biceps','arms_bi','b','Under bordet med handflatorna mot dig – mer biceps.'],
+['push','Triceps pushdown','Triceps','arms_tri','g','Armbågarna fast vid sidan, pressa ned till raka armar.'],
+['fransk','Fransk press','Triceps','arms_tri','g','Ligg på bänk, sänk stången mot pannan med armbågarna stilla.'],
+['ohext','Triceps overhead med hantel','Triceps','arms_tri','g','Hanteln bakom huvudet med båda händerna, sträck upp.'],
+['bankdips','Bänkdips','Triceps','arms_tri','b','Händerna på stol bakom dig, sänk dig rakt ned. Inte för djupt.'],
+['diamant','Diamantarmhävningar','Triceps','arms_tri','b','Händerna ihop under bröstet så att tummar och pekfingrar bildar en diamant.'],
+['kbohext','Kettlebell overhead extension','Triceps','arms_tri','k','Håll i hornen bakom huvudet och sträck upp.'],
+['tamask','Tåhävningar i maskin','Vader','calves','g','Hela vägen upp, paus, långsamt ned under trappnivå.'],
+['tahant','Stående tåhävningar med hantel','Vader','calves','g','På en kant med hälen fri, en hantel i handen.'],
+['taenben','Enbens tåhävningar på trappsteg','Vader','calves','b','Håll i räcket, ett ben i taget, full rörelse.'],
+['takb','Tåhävningar med kettlebell','Vader','calves','k','Håll klockan i ena handen, tåhävning på samma ben.'],
+['planka','Plankan','Mage','core','b','Armbågar under axlarna, kroppen rak, kläm rumpan. Andas.',1],
+['sidopl','Sidoplanka','Mage','core','b','Höften högt, rak linje från huvud till fot. Båda sidor.',1],
+['deadbug','Dead bug','Mage','core','b','Ligg på rygg, ländryggen i golvet, sträck ut motsatt arm och ben långsamt.'],
+['hollow','Hollow hold','Mage','core','b','Ländryggen i golvet, armar och ben lyfta som en banan.',1],
+['birddog','Fågelhunden','Mage','core','b','På alla fyra, sträck motsatt arm och ben, håll två sek.'],
+['pallof','Pallof press','Mage','core','g','Stå i sidled mot kabeln, pressa ut och stå emot vridningen.'],
+['knalyft','Hängande knälyft','Mage','core','g','Häng i stången, lyft knäna mot bröstet utan att gunga.'],
+['abwheel','Ab wheel','Mage','core','g','Börja på knä, rulla ut så långt du kan med rak rygg.'],
+['farmer','Bondgång med kettlebells','Mage','core','k','Tunga klockor i händerna, gå rak och stolt. Greppet och magen jobbar.',1],
+['tgu','Halv turkisk uppresning','Mage','core','k','Lätt klocka rakt upp, res dig till sittande på armbågen och handen. Ögonen på klockan.'],
+['russian','Russian twist med kettlebell','Mage','core','k','Sitt med lätt bakåtlutning och vrid klockan från sida till sida.'],
+['climbers','Mountain climbers','Mage','core','b','Armhävningsläge, dra knäna växelvis mot bröstet i högt tempo.',1],
+['burpees','Burpees','Helkropp','cond','b','Ned i armhävning, upp och hoppa. Hitta ett tempo du klarar.',1],
+['kbint','Swing-intervaller','Helkropp','cond','k','20 sek swings, 40 sek vila. Teknik hela vägen.',1],
+['roddm','Roddmaskin intervaller','Helkropp','cond','g','Ben – rygg – armar. 30 sek hårt, 30 sek lugnt.',1],
+['cykel','Cykel intervaller','Helkropp','cond','g','30 sek högt motstånd, 30 sek lätt.',1],
+['hopprep','Hopprep','Helkropp','cond','b','Små hopp på framfoten, avslappnade axlar.',1],
+['jacks','Jumping jacks','Helkropp','cond','b','Bra uppvärmning och puls.',1],
+['h9090','90/90 höftrörlighet','Rörlighet','mob','b','Sitt med båda benen i 90°, vrid långsamt över till andra sidan.',1],
+['thor','Bröstryggsrotation','Rörlighet','mob','b','Ligg på sidan med knäna böjda och öppna överarmen som en bok.',1],
+['wgs','Världens bästa stretch','Rörlighet','mob','b','Långt utfall, armbågen mot golvet, vrid upp armen mot taket.',1],
+['kattko','Katt och ko','Rörlighet','mob','b','På alla fyra, runda och svanka ryggen i lugn takt.',1]
+].map(a=>({id:a[0],n:a[1],m:a[2],p:a[3],e:a[4],c:a[5],t:!!a[6]}));
+
+const PAT={knee:'Knäböj',hinge:'Höftfällning',lunge:'Utfall',hpush:'Press framåt',vpush:'Press uppåt',hpull:'Rodd',vpull:'Drag uppifrån',shoulders:'Axlar',rear:'Bakre axel',chest_iso:'Bröst isolering',arms_bi:'Biceps',arms_tri:'Triceps',calves:'Vader',core:'Mage/bål',cond:'Kondition',mob:'Rörlighet'};
+const EQ={g:'Gym',k:'Kettlebell',b:'Kroppsvikt'};
+const COMP=['knee','hinge','lunge','hpush','vpush','hpull','vpull'];
+const TPL={
+ FA:{n:'Helkropp A',s:['knee','hpush','hpull','hinge','shoulders','core']},
+ FB:{n:'Helkropp B',s:['hinge','vpush','vpull','lunge','arms_bi','core']},
+ FC:{n:'Helkropp C',s:['knee','hpush','vpull','lunge','arms_tri','core']},
+ U:{n:'Överkropp',s:['hpush','hpull','vpush','vpull','rear','arms_bi','arms_tri']},
+ L:{n:'Underkropp',s:['knee','hinge','lunge','calves','core']},
+ PU:{n:'Press',s:['hpush','vpush','chest_iso','shoulders','arms_tri']},
+ PL:{n:'Drag',s:['vpull','hpull','rear','arms_bi','core']},
+ LE:{n:'Ben',s:['knee','hinge','lunge','calves','core']},
+ R:{n:'Rörlighet & puls',s:['cond','mob','mob','core','mob']}
+};
+const SPLIT={1:['FA'],2:['FA','FB'],3:['FA','FB','FC'],4:['U','L','U','L'],5:['U','L','PU','PL','LE'],6:['PU','PL','LE','PU','PL','LE'],7:['PU','PL','LE','R','PU','PL','LE']};
+const SPLITNAME={1:'Helkropp',2:'Helkropp A/B',3:'Helkropp A/B/C',4:'Över/under',5:'Över/under + press/drag/ben',6:'Press/drag/ben ×2',7:'Press/drag/ben ×2 + rörlighet'};
+const SCHEMES={
+ muskler:[{n:'Grund',c:[3,8,12],i:[3,12,15]},{n:'Styrka',c:[4,6,8],i:[3,10,12]},{n:'Volym',c:[3,10,15],i:[3,12,20]}],
+ styrka:[{n:'Grund',c:[3,8,12],i:[3,10,12]},{n:'Styrka',c:[4,6,8],i:[3,10,12]},{n:'Teknik & tempo',c:[4,6,10],i:[3,10,15]}],
+ form:[{n:'Grund',c:[3,10,12],i:[2,12,15]},{n:'Uthållighet',c:[3,12,15],i:[3,15,20]},{n:'Styrka',c:[4,8,10],i:[3,10,12]}]
+};
+const DAYS=['Mån','Tis','Ons','Tor','Fre','Lör','Sön'];
+
+const TIPS=[
+ {k:'Sömn',t:'Sov 8–10 timmar',w:'Musklerna växer inte på gymmet – de växer när du sover. Under djupsömn frisätts tillväxthormon som reparerar och bygger muskler. Tonåringar behöver 8–10 timmar. Sover du 6 timmar tappar du styrka, blir hungrigare på skräpmat och återhämtar dig sämre.',d:'Skärmen ned 30 min innan läggdags, samma tid varje kväll, svalt och mörkt rum.'},
+ {k:'Vatten',t:'Drick innan du är törstig',w:'Bara 2 % vätskeförlust gör att du orkar mindre och tappar fokus. Muskler består till stor del av vatten. Mörkt kiss = drick mer, ljust = bra.',d:'Ett glas när du vaknar, en flaska med till gymmet, ett glas till varje måltid.'},
+ {k:'Före träning',t:'Tanka 1–3 timmar innan',w:'Kroppen behöver energi för att orka lyfta tungt. Tränar du hungrig blir passet sämre och du bygger mindre. Kolhydrater är bränslet, lite protein skyddar musklerna.',d:'Exempel: smörgås med ost och skinka + banan, yoghurt med müsli, eller pasta med kyckling 2–3 h innan.'},
+ {k:'Efter träning',t:'Ät inom ett par timmar',w:'Efter passet är musklerna redo att byggas upp. Protein ger byggstenarna och kolhydrater fyller på energin. Det behöver inte vara någon shake – riktig mat funkar lika bra.',d:'Exempel: mjölk och mackor, kvarg med frukt, eller middag med kött/fisk/bönor, ris eller potatis och grönsaker.'},
+ {k:'Protein',t:'Protein i varje måltid',w:'Det är jämn tillförsel som räknas, inte en jättemåltid. Kött, fisk, ägg, mjölk, kvarg, yoghurt, ost, bönor och linser är bra källor.',d:'Tänk: något proteinrikt på tallriken vid frukost, lunch, middag och mellanmål.'},
+ {k:'Frukost',t:'Hoppa inte över frukosten',w:'Efter natten är energin låg. En bra frukost gör att du orkar i skolan och tränar bättre på eftermiddagen.',d:'Gröt med mjölk och bär, ägg och mackor, eller fil med flingor och en frukt.'},
+ {k:'Ät tillräckligt',t:'Du växer – ät ordentligt',w:'Kroppen behöver energi både för att växa och för att bygga muskler. Att äta för lite är vanligaste skälet till att det står still. Banta inte i din ålder om inte en läkare säger det.',d:'Tre mål + två mellanmål de flesta dagar.'},
+ {k:'Vila',t:'Vilodagar är träning',w:'Det är under vilan musklerna blir starkare. Samma muskelgrupp behöver ungefär 48 timmar mellan tunga pass. Därför har programmet vilodagar och en lättare vecka var fjärde vecka.',d:'På vilodagar: promenera, cykla, spela fotboll – rörelse är bra, bara inte tunga lyft.'},
+ {k:'Teknik',t:'Teknik före vikt',w:'Snygga reps bygger mer muskler och skyddar leder och rygg. När man är 14 växer skelettet fortfarande, så maxlyft och fusk-reps är helt onödigt – Torulf går aldrig under 6 reps per set. Be en instruktör på gymmet visa knäböj, marklyft och bänkpress innan du lägger på vikt.',d:'Om du inte klarar rörelsen snyggt – sänk vikten. Lämna alltid 1–2 reps i tanken.'},
+ {k:'Tålamod',t:'Ge det tid',w:'I din ålder kommer de första månaderna mest att handla om att hjärnan lär sig styra musklerna – du blir starkare fort men syns inte så mycket direkt. Musklerna kommer mer och mer med åren. Jämför dig med dig själv, inte med vuxna på gymmet eller på sociala medier.',d:'Titta på dina personbästa under Logg – där syns utvecklingen.'},
+ {k:'Ont',t:'Träningsvärk eller skada?',w:'Träningsvärk är en diffus ömhet i muskeln dagen efter och försvinner på några dagar. Skarp smärta, smärta i leder eller smärta som inte går över är något annat – sluta med övningen och berätta för en vuxen.',d:'Stick aldrig igenom skarp smärta.'},
+ {k:'Tillskott',t:'Du behöver inga pulver',w:'Vanlig mat räcker gott för att bygga muskler. Pre-workout och energidryck innehåller mycket koffein som stör sömnen – och sömnen är viktigare.',d:'Lägg pengarna på mat i stället.'},
+ {k:'Platå',t:'Därför byter programmet övningar',w:'Kroppen vänjer sig. Programmet roterar övningar och upplägg var fjärde vecka och ber dig öka vikt eller reps lite i taget (progressiv överbelastning). Så slipper du stå still.',d:'Logga dina set – då vet du vad du ska slå nästa gång.'}
+];
+
+/* ---------- Uppvärmning & stretch ---------- */
+const ROUT={
+ warm:{
+  full:[['Jogga på stället eller cykla','Lugnt, få upp pulsen',60],['Armcirklar','Stora cirklar framåt, sedan bakåt',30],['Knäböj utan vikt','Lugnt och djupt',30],['Utfall med vridning','Kliv fram och vrid överkroppen mot främre benet',40],['Världens bästa stretch','Långt utfall, armbågen ned, armen upp mot taket',40],['Jumping jacks','Höj pulsen inför första övningen',30]],
+  upper:[['Hopprep eller jumping jacks','Få upp pulsen',60],['Armcirklar','Framåt och bakåt',30],['Katt och ko','Rör hela ryggen',30],['Lätta armhävningar','På knä går bra – väck bröst och armar',30],['Skulderbladsdrag','Armarna rakt fram, dra skulderbladen ihop och isär',30],['Bröstryggsrotation','Ligg på sidan och öppna armen som en bok',40]],
+  lower:[['Cykla eller jogga','Få upp pulsen',60],['Bensving fram och bak','Håll i något, svinga ett ben i taget',40],['Bensving i sidled','Lugnt och kontrollerat',30],['Knäböj utan vikt','Djupt och lugnt',30],['Glute bridge','Väck rumpan',30],['Bakåtutfall','Växla ben',40]]},
+ stretch:{
+  full:[['Framåtfällning','Häng med överkroppen, lätt böjda knän',40],['Höftböjare i utfall','Knät i golvet, skjut höften framåt. Byt sida halvvägs',60],['Bröst mot dörrkarm','Underarmen mot karmen, vrid bort kroppen. Byt halvvägs',40],['Barnets position','Sitt på hälarna, armarna framåt, andas lugnt',45],['Liggande vridning','Knäna åt ena sidan, byt halvvägs',60]],
+  upper:[['Bröst mot dörrkarm','Byt sida halvvägs',60],['Axel över bröstet','Dra armen över bröstet, byt halvvägs',40],['Triceps bakom huvudet','Byt sida halvvägs',40],['Barnets position','Armarna långt fram, känn ryggen',45],['Nacke','Luta örat mot axeln, byt sida',40]],
+  lower:[['Baksida lår','Ett ben fram på hälen, fäll framåt. Byt halvvägs',60],['Framsida lår','Håll foten bakom rumpan, byt halvvägs',40],['Höftböjare i utfall','Byt sida halvvägs',60],['Duvan','Ena benet böjt framför dig, det andra bakåt. Byt halvvägs',60],['Vader mot vägg','Bakre hälen i golvet, byt halvvägs',40]]}};
+const REG={FA:'full',FB:'full',FC:'full',R:'full',U:'upper',PU:'upper',PL:'upper',L:'lower',LE:'lower'};
+const MODES={full:'Fullt pass',kort:'Kort (ca 30 min)',latt:'Lätt dag'};
+const PRAISE=['Starkt jobbat!','Det där var ett riktigt pass.','Du blir starkare för varje gång.','Snyggt – det är så resultat byggs.','Grym insats idag!','En till i banken!'];
+
+/* ---------- Märken ---------- */
+const BADGES=[
+ ['p1','Första passet','Du har kört igång!','pass',1],['p5','5 pass','Vanan börjar sätta sig','pass',5],['p10','10 pass','Tvåsiffrigt!','pass',10],['p25','25 pass','Riktigt stabilt','pass',25],['p50','50 pass','Halvvägs till hundra','pass',50],['p100','100 pass','Legend','pass',100],
+ ['w2','2 veckor i rad','Alla planerade pass två veckor i rad','streak',2],['w4','Helt block','Fyra veckor i rad','streak',4],['w8','8 veckor i rad','Två block utan att missa','streak',8],['w12','12 veckor i rad','Ett kvartal','streak',12],['w26','Ett halvår','26 veckor i rad','streak',26],
+ ['warm','Uppvärmd','Värmt upp inför 10 pass','warm',10],['str','Smidig','Stretchat efter 10 pass','stretch',10],
+ ['pb1','Nytt rekord','Slagit ett personbästa','pbs',1],['pb10','Rekordmaskin','10 personbästa','pbs',10],
+ ['sleep','Sömnmästare','8 timmar eller mer sju nätter i rad','sleepStreak',7],['water','Vattenhjälte','Nått vattenmålet 7 dagar','water',7],
+ ['home','Hemmahjälte','5 pass hemma','home',5],['tough','Ingen ursäkt','Körde ett kort eller lätt pass i stället för att hoppa över','easy',1],['coach','Egen coach','Byggt ett eget pass','custom',1]
+].map(a=>({id:a[0],n:a[1],d:a[2],k:a[3],g:a[4]}));
+
+/* ---------- State ---------- */
+const KEY='torulf.v1';
+const today=()=>dkey(new Date());
+function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function parse(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+function monday(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+const fresh=()=>({setup:null,swaps:{},assign:{},custom:{ex:[],wo:[]},logs:[],daily:{},opens:{},active:null,earned:{},reportSent:'',set:{name:'',water:8,bed:'22:30'}});
+let S=fresh();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(fresh(),JSON.parse(raw))}catch(e){}
+let storageOk=true;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){storageOk=false}}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const allEx=()=>BANK.concat(S.custom.ex);
+const exById=id=>allEx().find(x=>x.id===id);
+
+/* ---------- Program ---------- */
+function progInfo(){
+ const st=S.setup;if(!st)return null;
+ const w=Math.max(0,Math.floor((monday(new Date())-monday(parse(st.start)))/6048e5));
+ const block=Math.floor(w/4),wib=w%4;
+ const sch=SCHEMES[st.goal][block%3];
+ return {w,block,wib,deload:wib===3,sch};
+}
+function weekPlan(){
+ const st=S.setup;if(!st)return [];
+ const idx=[0,1,2,3,4,5,6].filter(i=>st.days[i]);
+ const seq=SPLIT[idx.length]||[];
+ const occ={};
+ return DAYS.map((_,i)=>{
+  const k=idx.indexOf(i);
+  if(k<0)return null;
+  if(S.assign[i]){const wo=S.custom.wo.find(x=>x.id===S.assign[i]);if(wo)return {day:i,custom:wo,name:wo.n,place:st.place[i]||'gym'}}
+  const t=seq[k];occ[t]=(occ[t]||0)+1;
+  return {day:i,tpl:t,occ:occ[t]-1,name:TPL[t].n+(SPLIT[idx.length].filter(x=>x===t).length>1?' '+'ABC'[occ[t]-1]:''),place:st.place[i]||'gym'};
+ });
+}
+function cands(p,place){return allEx().filter(x=>x.p===p&&(place==='gym'||x.e!=='g'))}
+function scheme(ex,info){
+ if(ex.t)return {sets:ex.p==='cond'?6:3,lo:20,hi:40,u:'s'};
+ const a=COMP.includes(ex.p)?info.sch.c:info.sch.i;
+ return {sets:info.deload?2:a[0],lo:a[1],hi:a[2],u:'reps'};
+}
+function buildDay(pd){
+ const info=progInfo();
+ if(pd.custom)return pd.custom.ex.map((id,j)=>{const ex=exById(id);return ex?{id,slot:j,sc:scheme(ex,info)}:null}).filter(Boolean);
+ const dup={};
+ return TPL[pd.tpl].s.map((p,j)=>{
+  dup[p]=(dup[p]||0)+1;
+  const c=cands(p,pd.place);
+  const sw=S.swaps[info.block+'|'+pd.day+'|'+j];
+  let ex=sw&&exById(sw);
+  if(!ex)ex=c[(info.block*2+pd.occ+dup[p]-1)%c.length];
+  return ex?{id:ex.id,slot:j,sc:scheme(ex,info)}:null;
+ }).filter(Boolean);
+}
+function lastFor(id){for(let i=S.logs.length-1;i>=0;i--){const it=S.logs[i].items.find(x=>x.id===id&&x.sets.some(s=>s.reps));if(it)return {log:S.logs[i],it}}return null}
+function progressHint(id,sc){
+ const L=lastFor(id);if(!L)return 'Första gången: börja lätt. Välj en vikt där du kunde ha gjort 2–3 reps till med snygg teknik.';
+ const sets=L.it.sets.filter(s=>s.reps);
+ const kg=Math.max(...sets.map(s=>+s.kg||0));
+ const txt=sets.map(s=>(s.kg?s.kg+' kg × ':'')+s.reps).join(', ');
+ const allTop=sets.length>=sc.sets&&sets.every(s=>+s.reps>=sc.hi);
+ const unit=sc.u==='s'?' sek':'';
+ if(progInfo().deload)return 'Sist: '+txt+unit+'. Lätt vecka – samma eller lite lägre vikt, fokus på teknik.';
+ if(allTop)return 'Sist: '+txt+unit+'. Du klarade toppen av intervallet – '+(kg?'öka ca 2,5 kg (eller 1–2 kg i hantlar).':'gör en tyngre variant eller lägg till vikt.');
+ return 'Sist: '+txt+unit+'. Försök slå det med 1 rep per set.';
+}
+
+function applyMode(items,mode){
+ if(mode==='kort')return items.slice(0,4).map(x=>({...x,sc:{...x.sc,sets:Math.max(2,x.sc.sets-1)}}));
+ if(mode==='latt')return items.map(x=>({...x,sc:{...x.sc,sets:2,light:true}}));
+ return items;
+}
+function estMin(items){return Math.round((items.reduce((a,x)=>a+x.sc.sets*2.3,0)+10)/5)*5}
+
+/* ---------- Statistik, märken, rapport ---------- */
+function weekCount(a){const b=addDays(a,7);return S.logs.filter(l=>{const d=parse(l.date);return d>=a&&d<b}).length}
+function planned(){return weekPlan().filter(Boolean).length}
+function weekStreak(){const p=Math.max(1,planned()),mon=monday(new Date());let s=weekCount(mon)>=p?1:0;for(let i=1;i<104;i++){if(weekCount(addDays(mon,-7*i))>=p)s++;else break}return s}
+function pbEvents(){
+ const max={},ev=[];
+ S.logs.slice().sort((a,b)=>a.ts-b.ts).forEach(l=>l.items.forEach(it=>{
+  const kg=Math.max(0,...it.sets.filter(s=>+s.reps).map(s=>+s.kg||0));if(!kg)return;
+  if(max[it.id]&&kg>max[it.id])ev.push({date:l.date,id:it.id,kg});
+  max[it.id]=Math.max(max[it.id]||0,kg);
+ }));
+ return ev;
+}
+function sleepStreak(){let best=0,cur=0,prev=null;Object.keys(S.daily).sort().forEach(k=>{const ok=(S.daily[k].sleep||0)>=8;const cont=prev&&dkey(addDays(parse(prev),1))===k;cur=ok?(cont?cur+1:1):0;best=Math.max(best,cur);prev=k});return best}
+function stats(){const L=S.logs;return {pass:L.length,streak:weekStreak(),warm:L.filter(l=>l.warm).length,stretch:L.filter(l=>l.stretch).length,pbs:pbEvents().length,sleepStreak:sleepStreak(),water:Object.values(S.daily).filter(d=>(d.water||0)>=S.set.water).length,home:L.filter(l=>l.place==='hem').length,easy:L.filter(l=>l.mode&&l.mode!=='full').length,custom:S.custom.wo.length}}
+function checkBadges(){S.earned=S.earned||{};const st=stats(),nb=[];BADGES.forEach(b=>{if(!S.earned[b.id]&&st[b.k]>=b.g){S.earned[b.id]=today();nb.push(b)}});if(nb.length)save();return nb}
+function medal(b,on){const lbl=b.k==='pass'?b.g:b.k==='streak'?b.g+'v':b.n[0];return `<svg viewBox="0 0 56 56" aria-hidden="true"><path d="M18 2h8l-4 16zM30 2h8l-4 16z" fill="${on?'var(--blue)':'var(--line)'}"/><circle cx="28" cy="34" r="19" fill="${on?'var(--red)':'var(--soft)'}" stroke="${on?'#0002':'var(--line)'}" stroke-width="2"/><circle cx="28" cy="34" r="14" fill="none" stroke="${on?'#fff6':'var(--line)'}" stroke-width="1.5"/><text x="28" y="39.5" text-anchor="middle" font-size="${String(lbl).length>2?12:15}" font-weight="900" font-family="Archivo,sans-serif" fill="${on?'#fff':'var(--mut)'}">${esc(lbl)}</text></svg>`}
+function report(off){
+ const a=addDays(monday(new Date()),-7*off),b=addDays(a,7),wk=isoWeek(a);
+ const L=S.logs.filter(l=>{const d=parse(l.date);return d>=a&&d<b}).sort((x,y)=>x.ts-y.ts);
+ const p=planned(),nm=S.set.name||'Jag';
+ const days=[...Array(7)].map((_,i)=>S.daily[dkey(addDays(a,i))]||{});
+ const sl=days.map(d=>d.sleep||0).filter(Boolean);
+ const pbs=pbEvents().filter(e=>{const d=parse(e.date);return d>=a&&d<b});
+ const bd=BADGES.filter(x=>{const e=S.earned[x.id];if(!e)return false;const d=parse(e);return d>=a&&d<b});
+ const lines=[`Torulf – veckorapport till ${S.set.parent||'pappa'} v${wk}`,`${S.set.name?nm+': ':'Pass: '}${L.length} av ${p} planerade${L.length>=p&&p?' – hela veckan klar!':''}`];
+ L.forEach(l=>lines.push(`• ${DAYS[(parse(l.date).getDay()+6)%7]} ${l.title}${l.mode&&l.mode!=='full'?' ('+(l.mode==='kort'?'kort':'lätt')+')':''}${l.feel?', kändes '+l.feel.toLowerCase():''}`));
+ if(L.length)lines.push(`Uppvärmning ${L.filter(l=>l.warm).length}/${L.length} pass, stretch ${L.filter(l=>l.stretch).length}/${L.length}`);
+ lines.push(sl.length?`Sömn: snitt ${(sl.reduce((x,y)=>x+y,0)/sl.length).toFixed(1).replace('.',',')} h (${sl.length} ${sl.length===1?'natt':'nätter'} loggade)`:'Sömn: inte loggad');
+ lines.push(`Vatten: målet nått ${days.filter(d=>(d.water||0)>=S.set.water).length} av 7 dagar`);
+ lines.push(`Mat efter träning: ${days.filter(d=>d.post).length} gånger`);
+ if(pbs.length)lines.push('Nya personbästa: '+pbs.map(e=>((exById(e.id)||{}).n||'')+' '+e.kg+' kg').join(', '));
+ if(bd.length)lines.push('Nya märken: '+bd.map(x=>x.n).join(', '));
+ lines.push(`Veckor i rad med alla pass: ${weekStreak()}`);
+ const dk=[...Array(7)].map((_,i)=>dkey(addDays(a,i)));
+ lines.push('');lines.push('Användning av appen:');
+ lines.push(`• Öppnat appen ${dk.filter(k=>S.opens[k]).length} av 7 dagar`);
+ lines.push(`• Loggat sömn ${days.filter(d=>d.sleep).length} dagar, vatten ${days.filter(d=>d.water).length} dagar, mat ${days.filter(d=>d.fr||d.pre||d.post).length} dagar`);
+ lines.push(`• Loggat vikter på ${L.filter(l=>l.items.some(it=>it.sets.some(s=>s.kg))).length} av ${L.length} pass`);
+ const lo=Object.keys(S.opens).sort().pop();if(lo)lines.push(`• Senast öppnad ${parse(lo).getDate()}/${parse(lo).getMonth()+1}`);
+ return {text:lines.join('\n'),key:a.getFullYear()+'-'+wk};
+}
+
+/* ---------- UI helpers ---------- */
+const $=s=>document.querySelector(s);
+let repOff=0,tab='vecka',bankFilter='Alla',bankQ='',timer=null,timerEnd=0;
+const ICONS={
+ vecka:'<path d="M4 6h16v14H4zM4 10h16M9 3v5M15 3v5" fill="none" stroke="currentColor" stroke-width="2"/>',
+ pass:'<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+ ovn:'<path d="M5 5h14M5 12h14M5 19h9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+ kropp:'<path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z" fill="none" stroke="currentColor" stroke-width="2"/>',
+ logg:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'};
+const TABN={vecka:'Vecka',pass:'Pass',ovn:'Övningar',kropp:'Kropp',logg:'Logg'};
+function navRender(){$('#tabs').innerHTML=Object.keys(TABN).map(k=>`<button data-tab="${k}" class="${tab===k?'on':''}" aria-label="${TABN[k]}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${TABN[k]}</button>`).join('')}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+function sheet(html){closeSheet();const d=document.createElement('div');d.className='sheet';d.id='sheet';d.innerHTML='<div class="in">'+html+'</div>';d.addEventListener('click',e=>{if(e.target===d)closeSheet()});document.body.appendChild(d)}
+function closeSheet(){const s=$('#sheet');if(s)s.remove()}
+function dayLog(date){return S.logs.filter(l=>l.date===date)}
+function dly(k){return S.daily[k]||(S.daily[k]={sleep:0,water:0,fr:false,pre:false,post:false})}
+
+/* ---------- Påminnelser ---------- */
+function nudges(){
+ const n=[],now=new Date(),h=now.getHours()+now.getMinutes()/60,d=S.daily[today()]||{},st=S.setup;
+ const plan=weekPlan(),td=plan[(now.getDay()+6)%7];
+ const [bh,bm]=(S.set.bed||'22:30').split(':').map(Number),bed=bh+bm/60;
+ if(h>=bed-1&&h<bed+3)n.push(['Snart läggdags',`Mål: sova ${S.set.bed}. Lägg undan mobilen 30 min innan – det är då musklerna byggs.`]);
+ if(h<11&&!d.sleep)n.push(['Hur sov du?','Logga när du la dig och när du vaknade under Kropp.']);
+ if(td&&st&&!dayLog(today()).length){
+  const [th,tm]=(st.time[td.day]||'17:00').split(':').map(Number),tt=th+tm/60;
+  if(h>=tt-3&&h<tt-0.5&&!d.pre)n.push(['Tanka inför passet',`${td.name} kl ${st.time[td.day]||'17:00'}. Ät ett mål nu: kolhydrater + lite protein, och drick ett glas vatten.`]);
+  else if(h<tt-3)n.push(['Träningsdag idag',`${td.name} kl ${st.time[td.day]||'17:00'}. Ät ordentligt till lunch och ha med vattenflaskan.`]);
+ }
+ const lt=dayLog(today()).slice(-1)[0];
+ if(lt&&!d.post&&Date.now()-lt.ts<3*36e5)n.push(['Bra jobbat – nu mat!','Ät inom ett par timmar: protein + kolhydrater. Kryssa i under Kropp.']);
+ const wd=now.getDay();
+ if((wd===0&&h>=17&&S.reportSent!==report(0).key)||(wd===1&&h<14&&S.reportSent!==report(1).key))n.unshift(['Veckorapport',`Dags att skicka veckorapporten till ${S.set.parent||'pappa'} – den finns under Logg.`]);
+ if(h>=14&&(d.water||0)<S.set.water/2)n.push(['Drick vatten',`Du har loggat ${d.water||0} av ${S.set.water} glas idag.`]);
+ return n.slice(0,2).map(x=>`<div class="nudge"><b>${esc(x[0])}</b><span class="small">${esc(x[1])}</span></div>`).join('');
+}
+
+/* ---------- Vecka ---------- */
+function renderVecka(){
+ if(!S.setup)return `<div class="card" style="text-align:center"><svg class="hero" viewBox="0 0 120 120" aria-hidden="true"><use href="#tlogo"/></svg><h2>Hej! Jag är Torulf.</h2><p class="muted">Jag gör ett träningsprogram åt dig utifrån vilka dagar du kan träna, och byter övningar var fjärde vecka så att du fortsätter bli starkare.</p><p class="muted">Jag påminner dig också om sömn, vatten och mat – det som gör att träningen faktiskt ger resultat.</p><button class="primary" data-act="setup" style="width:100%;margin-top:10px">Planera min vecka</button>${installed()?'':'<div class="hint" style="text-align:left;margin-top:12px"><b>Gör Torulf till en app:</b> i Safari, tryck på Dela-knappen och välj <b>Lägg till på hemskärmen</b>.</div>'}</div>`+tipCard();
+ const info=progInfo(),plan=weekPlan(),mon=monday(new Date()),tk=today();
+ const nDays=plan.filter(Boolean).length;
+ let h=nudges();
+ h+=`<div class="row between" style="margin-top:6px"><div><h2>Vecka ${info.wib+1} av 4</h2><div class="small muted">Block ${info.block+1} · ${esc(info.sch.n)} · ${esc(SPLITNAME[nDays]||'')}</div></div><button class="sm" data-act="setup">Ändra</button></div>`;
+ h+=`<div class="block">${[0,1,2,3].map(i=>`<span class="${i<info.wib?'past':i===info.wib?'on':''}"></span>`).join('')}</div>`;
+ if(info.deload)h+=`<div class="nudge" style="border-color:var(--red)"><b>Lätt vecka</b><span class="small">Färre set och samma eller lite lägre vikt. Kroppen bygger upp sig – nästa vecka startar ett nytt block med nya övningar.</span></div>`;
+ else if(info.wib===0)h+=`<p class="small muted">Nytt block – nya övningar. Hitta rätt vikter den här veckan.</p>`;
+ h+='<div class="week">'+plan.map((p,i)=>{
+  const dk=dkey(addDays(mon,i)),done=dayLog(dk).length>0,isT=dk===tk;
+  if(!p)return `<div class="day rest ${isT?'today':''}"><div><div class="dn">${DAYS[i]}</div><div class="dd">${addDays(mon,i).getDate()}/${addDays(mon,i).getMonth()+1}</div></div><div class="muted">Vila${done?' · extrapass loggat':''}</div><span></span></div>`;
+  return `<button class="day ${isT?'today':''}" data-act="openday" data-day="${i}"><div><div class="dn">${DAYS[i]}</div><div class="dd">${addDays(mon,i).getDate()}/${addDays(mon,i).getMonth()+1}</div></div><div><h3>${esc(p.name)}</h3><div class="small muted">${p.place==='gym'?'Gymmet':'Hemma'} · ${esc(S.setup.time[i]||'17:00')} · ${p.custom?p.custom.ex.length:TPL[p.tpl].s.length} övningar</div></div><span class="tag ${done?'done':''}">${done?'Klar':isT?'Idag':'Plan'}</span></button>`;
+ }).join('')+'</div>';
+ if(nDays===7)h+=`<p class="small muted">Sju dagar är mycket – en dag är satt till rörlighet och lätt puls så att kroppen hinner återhämta sig.</p>`;
+ return h+tipCard();
+}
+function installed(){try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}}
+function tipCard(){const t=TIPS[Math.floor(Date.now()/864e5)%TIPS.length];return `<div class="card"><div class="small muted">Dagens tips · ${esc(t.k)}</div><h3 style="margin:4px 0">${esc(t.t)}</h3><p class="small">${esc(t.w)}</p><p class="small"><b>Gör så här:</b> ${esc(t.d)}</p></div>`}
+
+function setupSheet(){
+ const st=S.setup||{days:[true,false,true,false,true,false,false],place:{},time:{},goal:'muskler',start:dkey(monday(new Date()))};
+ const tmp=JSON.parse(JSON.stringify(st));
+ const draw=()=>{
+  const n=tmp.days.filter(Boolean).length;
+  sheet(`<div class="row between"><h2>Planera veckan</h2><button class="sm ghost" data-act="close">Stäng</button></div>
+  <label for="nm">Ditt namn</label><input id="nm" value="${esc(S.set.name)}" placeholder="Valfritt">
+  <label>Vad vill du helst?</label><div class="seg">${[['muskler','Bygga muskler'],['styrka','Bli starkare'],['form','Bättre form']].map(g=>`<button data-g="${g[0]}" class="${tmp.goal===g[0]?'on':''}">${g[1]}</button>`).join('')}</div>
+  <label>Vilka dagar tränar du?</label><div class="daypick">${DAYS.map((d,i)=>`<button data-d="${i}" class="${tmp.days[i]?'on':''}" aria-pressed="${tmp.days[i]}">${d}</button>`).join('')}</div>
+  <p class="small muted">${n?`${n} pass → ${esc(SPLITNAME[n])}. `:'Välj minst en dag. '}${n>=6?'Tips: 3–5 dagar räcker gott för att bygga muskler.':n>=3&&n<=5?'Bra mängd!':''}</p>
+  ${tmp.days.map((on,i)=>on?`<div class="dayset"><b>${DAYS[i]}</b><select data-pl="${i}" aria-label="Plats ${DAYS[i]}"><option value="gym" ${tmp.place[i]!=='hem'?'selected':''}>Gymmet</option><option value="hem" ${tmp.place[i]==='hem'?'selected':''}>Hemma</option></select><input type="time" data-tm="${i}" value="${esc(tmp.time[i]||'17:00')}" aria-label="Tid ${DAYS[i]}"></div>`:'').join('')}
+  <div class="row" style="margin-top:6px"><div class="grow"><label for="bed">Läggdags</label><input id="bed" type="time" value="${esc(S.set.bed)}"></div><div class="grow"><label for="wg">Vattenmål (glas/dag)</label><input id="wg" type="number" min="4" max="16" value="${S.set.water}"></div></div>
+  <label for="rp">Veckorapporten skickas till</label><input id="rp" value="${esc(S.set.parent||'pappa')}">
+  <button class="primary" id="saveSetup" style="width:100%;margin-top:16px" ${n?'':'disabled'}>Spara och skapa program</button>
+  ${S.setup?'<button id="restart" class="ghost" style="width:100%;margin-top:8px">Starta om från block 1</button>':''}
+  <p class="small muted" style="margin-top:14px">Hemma-dagar använder kroppsvikt och kettlebells. Programmet byter övningar och upplägg var 4:e vecka, och vecka 4 är alltid lättare.</p>`);
+  const sh=$('#sheet');
+  const keep=()=>{S.set.name=$('#nm').value.trim();S.set.bed=$('#bed').value||'22:30';S.set.water=Math.min(16,Math.max(4,+$('#wg').value||8));S.set.parent=$('#rp').value.trim()||'pappa';sh.querySelectorAll('[data-pl]').forEach(s=>tmp.place[s.dataset.pl]=s.value);sh.querySelectorAll('[data-tm]').forEach(s=>tmp.time[s.dataset.tm]=s.value)};
+  sh.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{keep();tmp.days[+b.dataset.d]=!tmp.days[+b.dataset.d];draw()});
+  sh.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{keep();tmp.goal=b.dataset.g;draw()});
+  $('#saveSetup').onclick=()=>{keep();S.setup=tmp;save();closeSheet();render();toast('Programmet är klart')};
+  const r=$('#restart');if(r)r.onclick=()=>{keep();tmp.start=dkey(monday(new Date()));S.setup=tmp;S.swaps={};save();closeSheet();render();toast('Nytt block 1')};
+ };
+ draw();
+}
+
+/* ---------- Pass ---------- */
+function startSession(items,title,day,meta){
+ meta=meta||{};
+ S.active={date:today(),title,day,start:Date.now(),region:meta.region||'full',mode:meta.mode||'full',place:meta.place||'gym',warm:false,stretch:false,items:items.map(x=>({id:x.id,sc:x.sc,slot:x.slot,sets:Array.from({length:x.sc.sets},()=>({kg:'',reps:'',done:false}))}))};
+ save();tab='pass';render();window.scrollTo(0,0);
+}
+function openDay(i,mode){
+ mode=mode||'full';
+ const pd=weekPlan()[i];if(!pd)return;
+ const items=applyMode(buildDay(pd),mode),region=pd.custom?'full':REG[pd.tpl];
+ const modeTxt={full:'Hela passet som planerat.',kort:'De 4 viktigaste övningarna med ett set mindre. Perfekt när tiden är knapp.',latt:'Alla övningar, 2 set och ca 70 % av vanlig vikt. För dagar när du är trött eller inte riktigt på topp – men inte sjuk.'};
+ sheet(`<div class="row between"><h2>${esc(pd.name)}</h2><button class="sm ghost" data-act="close">Stäng</button></div><p class="small muted">${DAYS[i]} · ${pd.place==='gym'?'Gymmet':'Hemma'} · ca ${estMin(items)} min</p>
+ <label>Hur känns det idag?</label><div class="seg">${Object.keys(MODES).map(m=>`<button data-mode="${m}" class="${mode===m?'on':''}">${m==='full'?'Fullt':m==='kort'?'Kort':'Lätt'}</button>`).join('')}</div>
+ <p class="small muted" style="margin-top:6px">${modeTxt[mode]}</p>
+ <div class="hint">Torulf leder dig genom ${ROUT.warm[region].length} uppvärmningsövningar före och ${ROUT.stretch[region].length} stretchövningar efter passet (ca 5 min vardera).</div>
+ ${items.map(it=>{const ex=exById(it.id);return `<div class="ex"><div class="row between"><div class="grow"><h3>${esc(ex.n)}</h3><div class="small muted">${it.sc.sets} × ${it.sc.lo}–${it.sc.hi}${it.sc.u==='s'?' sek':''} · ${esc(ex.m)}</div></div>${pd.custom?'':`<button class="sm" data-swap="${it.slot}" data-day="${i}">Byt</button>`}</div></div>`}).join('')}
+ <button class="primary" id="go" style="width:100%;margin-top:12px">Starta ${mode==='full'?'passet':mode==='kort'?'kort pass':'lätt pass'}</button>
+ <p class="small muted" style="margin-top:10px">Är du sjuk, har feber eller ont någonstans? Vila i stället – det är rätt beslut.</p>
+ ${pd.custom?`<button class="ghost" id="unassign" style="width:100%;margin-top:8px">Använd Torulfs pass i stället</button>`:''}`);
+ $('#go').onclick=()=>{closeSheet();if(S.active&&!confirmReplace())return;startSession(items,pd.name,i,{region,mode,place:pd.place})};
+ const u=$('#unassign');if(u)u.onclick=()=>{delete S.assign[i];save();openDay(i,mode);render()};
+ $('#sheet').querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>openDay(i,b.dataset.mode));
+ $('#sheet').querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>swapSheet(i,+b.dataset.swap,mode));
+}
+let rt=null;
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+function routine(kind){
+ const A=S.active;if(!A)return;
+ const list=ROUT[kind][A.region||'full'];let i=0,left=list[0][2],paused=false;
+ const stop=()=>{clearInterval(rt);rt=null;closeSheet()};
+ const next=()=>{if(i<list.length-1){i++;left=list[i][2];draw();try{navigator.vibrate&&navigator.vibrate(150)}catch(e){}}else{stop();A[kind]=true;save();render();toast(kind==='warm'?'Uppvärmd – nu kör vi!':'Snyggt, kroppen tackar dig')}};
+ const draw=()=>{const s=list[i];
+  sheet(`<div class="row between"><h2>${kind==='warm'?'Uppvärmning':'Stretch'}</h2><button class="sm ghost" id="rtx">Stäng</button></div>
+  <div class="block">${list.map((_,k)=>`<span class="${k<i?'past':k===i?'on':''}"></span>`).join('')}</div>
+  <div style="text-align:center;padding:16px 0"><div class="small muted">${i+1} av ${list.length}</div><h2 style="margin:6px 0">${esc(s[0])}</h2><p class="muted">${esc(s[1])}</p><div class="big" id="rtl" style="margin-top:10px">${fmt(left)}</div></div>
+  <div class="row"><button class="grow" id="rtp">${paused?'Fortsätt':'Paus'}</button><button class="primary grow" id="rtn">${i<list.length-1?'Nästa':'Klar'}</button></div>
+  <p class="small muted" style="margin-top:12px">Nästa: ${i<list.length-1?esc(list[i+1][0]):'klart!'}</p>`);
+  $('#rtx').onclick=stop;$('#rtp').onclick=()=>{paused=!paused;draw()};$('#rtn').onclick=next;};
+ clearInterval(rt);
+ rt=setInterval(()=>{if(!$('#sheet')){clearInterval(rt);return}if(paused)return;left--;if(left<=0)next();else{const e=$('#rtl');if(e)e.textContent=fmt(left)}},1000);
+ draw();
+}
+function routCard(kind){
+ const A=S.active,list=ROUT[kind][A.region||'full'],min=Math.round(list.reduce((a,x)=>a+x[2],0)/60);
+ return `<div class="card"><div class="row between"><h3>${kind==='warm'?'1. Uppvärmning':'Sist: stretch'}</h3>${A[kind]?'<span class="tag done">Klar</span>':''}</div><div class="small muted">${list.length} övningar · ca ${min} min · ${list.map(x=>esc(x[0])).slice(0,3).join(', ')} …</div>${A[kind]?'':`<div class="row" style="margin-top:10px"><button class="primary sm grow" data-rout="${kind}">Starta guidad ${kind==='warm'?'uppvärmning':'stretch'}</button><button class="sm ghost" data-routdone="${kind}">Redan gjort</button></div>`}</div>`;
+}
+function confirmReplace(){return S.active.items.every(it=>it.sets.every(s=>!s.done))||(toast('Avsluta pågående pass först'),tab='pass',render(),false)}
+function swapSheet(day,slot,mode){
+ const pd=weekPlan()[day],p=TPL[pd.tpl].s[slot],info=progInfo();
+ const c=cands(p,pd.place);
+ sheet(`<div class="row between"><h2>Byt: ${esc(PAT[p])}</h2><button class="sm ghost" data-act="close">Stäng</button></div><p class="small muted">Alla alternativ tränar samma rörelse. Bytet gäller resten av blocket.</p><div class="exlist">${c.map(x=>`<button class="exitem" data-pick="${esc(x.id)}"><span><b>${esc(x.n)}</b><br><span class="small muted">${esc(x.c)}</span></span><span class="eq">${EQ[x.e]}</span></button>`).join('')}</div>`);
+ $('#sheet').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{S.swaps[info.block+'|'+day+'|'+slot]=b.dataset.pick;save();openDay(day,mode)});
+}
+function renderPass(){
+ const A=S.active;
+ if(!A){
+  const plan=weekPlan(),ti=(new Date().getDay()+6)%7,td=plan[ti];
+  let h=`<h2 style="margin-top:6px">Dagens pass</h2>`;
+  if(td)h+=`<div class="card"><h3>${esc(td.name)}</h3><p class="small muted">${td.place==='gym'?'Gymmet':'Hemma'} · ${esc(S.setup.time[ti]||'17:00')}</p><button class="primary" data-act="openday" data-day="${ti}" style="width:100%;margin-top:8px">Visa och starta</button></div>`;
+  else h+=`<div class="card"><p>${S.setup?'Vilodag idag. Rör på dig lätt – promenad, cykel eller boll – och sov gott.':'Planera veckan först så gör jag ett pass åt dig.'}</p></div>`;
+  h+=`<h2 style="margin-top:18px">Egna pass</h2>`;
+  h+=S.custom.wo.length?S.custom.wo.map(w=>`<div class="card"><div class="row between"><div class="grow"><h3>${esc(w.n)}</h3><div class="small muted">${w.ex.map(id=>esc((exById(id)||{}).n||'')).join(' · ')}</div></div></div><div class="row" style="margin-top:10px"><button class="primary sm" data-startwo="${esc(w.id)}">Starta</button><button class="sm" data-assign="${esc(w.id)}">Lägg på en dag</button><button class="sm ghost" data-delwo="${esc(w.id)}">Ta bort</button></div></div>`).join(''):`<p class="small muted">Inga egna pass än. Bygg ett under Övningar.</p>`;
+  return h;
+ }
+ const doneSets=A.items.reduce((a,it)=>a+it.sets.filter(s=>s.done).length,0),tot=A.items.reduce((a,it)=>a+it.sets.length,0);
+ let h=`<div class="row between" style="margin-top:6px"><div><h2>${esc(A.title)}</h2><div class="small muted">${doneSets} av ${tot} set klara${A.mode==='kort'?' · Kort pass':A.mode==='latt'?' · Lätt dag':''}</div></div><button class="sm ghost" data-act="cancel">Avbryt</button></div>`;
+ h+=`<div class="block">${A.items.map(it=>`<span class="${it.sets.every(s=>s.done)?'on':''}"></span>`).join('')}</div>`;
+ h+=routCard('warm');
+ h+=`<div class="card">`+A.items.map((it,ii)=>{
+  const ex=exById(it.id)||{n:'Okänd övning',c:'',m:''};const sec=it.sc.u==='s';
+  return `<div class="ex"><h3>${esc(ex.n)}</h3><div class="small muted">${it.sc.sets} × ${it.sc.lo}–${it.sc.hi}${sec?' sek':' reps'} · ${esc(ex.m)}</div>
+  <details><summary class="small">Så gör du</summary><p class="small">${esc(ex.c)}</p></details>
+  <div class="hint">${it.sc.light?'Lätt dag: ta ca 70 % av vikten du brukar, och sluta långt från max. Det viktiga är att du kom hit.':esc(progressHint(it.id,it.sc))}</div>
+  <div class="sets"><span class="h">Set</span><span class="h">Kg</span><span class="h">${sec?'Sek':'Reps'}</span><span></span>
+  ${it.sets.map((s,si)=>`<b>${si+1}</b><input inputmode="decimal" data-kg="${ii}-${si}" value="${esc(s.kg)}" placeholder="${ex.e==='b'?'–':'kg'}" aria-label="Kg set ${si+1}"><input inputmode="numeric" data-rp="${ii}-${si}" value="${esc(s.reps)}" placeholder="${it.sc.hi}" aria-label="${sec?'Sekunder':'Reps'} set ${si+1}"><button class="chk ${s.done?'on':''}" data-done="${ii}-${si}" aria-label="Set klart">${s.done?'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10l4 4 8-8" fill="none" stroke="currentColor" stroke-width="3"/></svg>':''}</button>`).join('')}
+  </div><div class="row" style="margin-top:8px"><button class="sm ghost" data-addset="${ii}">+ Set</button></div></div>`}).join('')+`</div>`;
+ h+=routCard('stretch');
+ h+=`<div class="card"><h3>Hur kändes passet?</h3><div class="seg" style="margin-top:8px">${['Lätt','Lagom','Tungt'].map(f=>`<button data-feel="${f}" class="${A.feel===f?'on':''}">${f}</button>`).join('')}</div><button class="primary" data-act="finish" style="width:100%;margin-top:12px">Avsluta och spara</button></div>`;
+ return h;
+}
+function startTimer(sec){timerEnd=Date.now()+sec*1000;clearInterval(timer);timer=setInterval(drawTimer,250);drawTimer()}
+function drawTimer(){
+ const left=Math.max(0,Math.round((timerEnd-Date.now())/1000)),slot=$('#timerSlot');
+ if(!timerEnd){slot.innerHTML='';return}
+ slot.innerHTML=`<div class="timer" role="timer"><span class="small">Vila</span><b>${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}</b><button class="sm" data-tadd="30">+30</button><button class="sm" data-tstop="1">${left?'Hoppa':'Kör!'}</button></div>`;
+ if(!left){clearInterval(timer);try{navigator.vibrate&&navigator.vibrate(300)}catch(e){}}
+}
+
+function celebrate(A,nb){
+ const n=S.logs.length,wk=weekCount(monday(new Date())),p=planned();
+ let msg=A.mode&&A.mode!=='full'?'Snyggt att du körde ändå – det är så man bygger en vana.':A.feel==='Tungt'?'Tufft pass, och du klarade det. Sov gott i natt.':PRAISE[n%PRAISE.length];
+ const pbsToday=pbEvents().filter(e=>e.date===A.date);
+ sheet(`<div class="celebrate"><div class="small muted">Pass nummer</div><div class="big">${n}</div><h2 style="margin:8px 0">${esc(msg)}</h2>
+ <p>${wk} av ${p||wk} pass den här veckan${p&&wk>=p?' – <b>veckan är klar!</b>':''}${weekStreak()>1?` · ${weekStreak()} veckor i rad`:''}</p>
+ ${pbsToday.length?`<div class="hint">Nytt personbästa: ${pbsToday.map(e=>esc((exById(e.id)||{}).n||'')+' '+e.kg+' kg').join(', ')}</div>`:''}
+ ${nb.length?`<h3 style="margin-top:14px">Nytt märke!</h3>${nb.map(b=>`<div class="badge">${medal(b,true)}<b>${esc(b.n)}</b>${esc(b.d)}</div>`).join('')}`:''}
+ ${A.stretch?'':'<p class="small muted" style="margin-top:10px">Du hoppade över stretchen – fem minuter nu gör att du blir mindre stel i morgon.</p>'}
+ <div class="hint" style="margin-top:12px;text-align:left"><b>Nu:</b> ät inom två timmar (protein + kolhydrater) och drick ett par glas vatten.</div>
+ <button class="primary" data-act="close" style="width:100%;margin-top:14px">Tack!</button></div>`);
+}
+
+/* ---------- Övningar ---------- */
+function renderOvn(){
+ const groups=['Alla','Ben','Baksida','Rumpa','Bröst','Rygg','Axlar','Biceps','Triceps','Mage','Vader','Helkropp','Rörlighet','Egna'];
+ const q=bankQ.toLowerCase();
+ const list=allEx().filter(x=>(bankFilter==='Alla'||(bankFilter==='Egna'?x.own:x.m===bankFilter))&&(!q||x.n.toLowerCase().includes(q)));
+ return `<div class="row between" style="margin-top:6px"><h2>Övningsbank</h2><span class="small muted">${allEx().length} övningar</span></div>
+ <div class="row" style="margin:10px 0"><button class="primary sm grow" data-act="newwo">Bygg eget pass</button><button class="sm grow" data-act="newex">Skapa egen övning</button></div>
+ <input id="q" type="search" placeholder="Sök övning" value="${esc(bankQ)}" aria-label="Sök övning">
+ <div class="chips" style="margin-top:10px">${groups.map(g=>`<button class="chip ${bankFilter===g?'on':''}" data-filter="${g}">${g}</button>`).join('')}</div>
+ <div class="exlist" id="exlist">${list.map(x=>`<button class="exitem" data-ex="${esc(x.id)}"><span><b>${esc(x.n)}</b><br><span class="small muted">${esc(x.m)} · ${esc(PAT[x.p]||'')}</span></span><span class="eq">${EQ[x.e]||''}</span></button>`).join('')||'<div class="empty">Inget hittades.</div>'}</div>`;
+}
+function exSheet(id){
+ const x=exById(id);if(!x)return;
+ const pr=pb(id);
+ sheet(`<div class="row between"><h2>${esc(x.n)}</h2><button class="sm ghost" data-act="close">Stäng</button></div>
+ <p class="small muted">${esc(x.m)} · ${esc(PAT[x.p]||'')} · ${EQ[x.e]||''}</p><p>${esc(x.c||'Ingen beskrivning.')}</p>
+ ${pr?`<div class="hint">Ditt bästa: ${esc(pr)}</div>`:''}
+ ${x.own?`<button class="ghost" id="delex" style="width:100%;margin-top:12px">Ta bort övningen</button>`:''}`);
+ const d=$('#delex');if(d)d.onclick=()=>{S.custom.ex=S.custom.ex.filter(e=>e.id!==id);S.custom.wo.forEach(w=>w.ex=w.ex.filter(e=>e!==id));save();closeSheet();render()};
+}
+function newExSheet(){
+ sheet(`<div class="row between"><h2>Egen övning</h2><button class="sm ghost" data-act="close">Stäng</button></div>
+ <label for="en">Namn</label><input id="en" placeholder="T.ex. Armhävning på bollar">
+ <label for="em">Muskelgrupp</label><select id="em">${['Ben','Baksida','Rumpa','Bröst','Rygg','Axlar','Biceps','Triceps','Mage','Vader','Helkropp','Rörlighet'].map(m=>`<option>${m}</option>`).join('')}</select>
+ <label for="ep">Rörelse (så kan Torulf byta in den i programmet)</label><select id="ep">${Object.keys(PAT).map(p=>`<option value="${p}">${PAT[p]}</option>`).join('')}</select>
+ <label for="ee">Utrustning</label><select id="ee"><option value="g">Gym</option><option value="k">Kettlebell</option><option value="b">Kroppsvikt</option></select>
+ <label for="ec">Så gör du</label><textarea id="ec" placeholder="Egna tips om tekniken"></textarea>
+ <label><input type="checkbox" id="et" style="width:auto;min-height:0"> Mäts i sekunder</label>
+ <button class="primary" id="saveEx" style="width:100%;margin-top:12px">Spara övning</button>`);
+ $('#saveEx').onclick=()=>{const n=$('#en').value.trim();if(!n){toast('Skriv ett namn');return}
+  S.custom.ex.push({id:'own'+Date.now(),n,m:$('#em').value,p:$('#ep').value,e:$('#ee').value,c:$('#ec').value.trim(),t:$('#et').checked,own:true});save();closeSheet();bankFilter='Egna';render();toast('Övningen är sparad')};
+}
+function newWoSheet(){
+ const pick=[];let q='';
+ const draw=()=>{
+  const ql=q.toLowerCase(),list=allEx().filter(x=>!ql||x.n.toLowerCase().includes(ql)||x.m.toLowerCase().includes(ql)).slice(0,60);
+  const nm=$('#wn')?$('#wn').value:'';
+  sheet(`<div class="row between"><h2>Bygg eget pass</h2><button class="sm ghost" data-act="close">Stäng</button></div>
+  <label for="wn">Namn på passet</label><input id="wn" value="${esc(nm)}" placeholder="T.ex. Armar och mage">
+  <div class="hint">${pick.length?pick.map((id,i)=>`${i+1}. ${esc(exById(id).n)}`).join('<br>'):'Tryck på övningar nedan för att lägga till dem i ordning.'}</div>
+  <input id="wq" type="search" placeholder="Sök på namn eller muskel" value="${esc(q)}" style="margin-top:10px" aria-label="Sök">
+  <div class="exlist">${list.map(x=>`<button class="exitem" data-add="${esc(x.id)}"><span><b>${esc(x.n)}</b><br><span class="small muted">${esc(x.m)}</span></span><span class="eq">${pick.includes(x.id)?'Vald':EQ[x.e]}</span></button>`).join('')}</div>
+  <button class="primary" id="saveWo" style="width:100%;margin-top:12px;position:sticky;bottom:0">Spara pass (${pick.length})</button>`);
+  const wq=$('#wq');wq.oninput=()=>{q=wq.value;const pos=wq.selectionStart;draw();const n=$('#wq');n.focus();n.setSelectionRange(pos,pos)};
+  $('#sheet').querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const id=b.dataset.add,k=pick.indexOf(id);k<0?pick.push(id):pick.splice(k,1);const st=$('#sheet .in').scrollTop;draw();$('#sheet .in').scrollTop=st});
+  $('#saveWo').onclick=()=>{const n=$('#wn').value.trim()||'Eget pass';if(!pick.length){toast('Välj minst en övning');return}
+   S.custom.wo.push({id:'wo'+Date.now(),n,ex:pick.slice()});save();closeSheet();tab='pass';render();toast('Passet är sparat')};
+ };
+ draw();
+}
+function assignSheet(woId){
+ if(!S.setup){toast('Planera veckan först');return}
+ sheet(`<div class="row between"><h2>Vilken dag?</h2><button class="sm ghost" data-act="close">Stäng</button></div><p class="small muted">Passet ersätter Torulfs pass den dagen varje vecka.</p><div class="daypick">${DAYS.map((d,i)=>`<button data-ad="${i}" ${S.setup.days[i]?'':'disabled'}>${d}</button>`).join('')}</div>`);
+ $('#sheet').querySelectorAll('[data-ad]').forEach(b=>b.onclick=()=>{S.assign[b.dataset.ad]=woId;save();closeSheet();tab='vecka';render();toast('Lagt på '+DAYS[b.dataset.ad])});
+}
+
+/* ---------- Kropp ---------- */
+function renderKropp(){
+ const k=today(),d=dly(k),wg=S.set.water;
+ const last7=[...Array(7)].map((_,i)=>{const dk=dkey(addDays(new Date(),i-6));return {dk,s:(S.daily[dk]||{}).sleep||0}});
+ const score=[d.sleep>=8,d.water>=wg,d.fr,d.pre||!isTrainDay(),d.post||!isTrainDay()].filter(Boolean).length;
+ return nudges()+`<div class="row between" style="margin-top:6px"><h2>Idag</h2><span class="small muted">${score} av 5 klara</span></div>
+ <div class="card"><h3>Sömn i natt</h3><div class="row" style="margin-top:6px"><div class="grow"><label for="slb">La mig</label><input id="slb" type="time" value="${esc(d.bed||'')}"></div><div class="grow"><label for="slu">Vaknade</label><input id="slu" type="time" value="${esc(d.up||'')}"></div></div>
+ <p style="margin-top:10px"><b style="font-size:28px;font-weight:900">${d.min?Math.floor(d.min/60)+' h '+(d.min%60?d.min%60+' min':''):d.sleep?d.sleep+' h':'–'}</b> <span class="small ${d.sleep>=8?'':'muted'}" style="${d.sleep>=8?'color:var(--ok)':''}">${!d.sleep?'Fyll i båda tiderna':d.sleep>=8?'Toppen! Mål 8–10 h':d.sleep>=7?'Nästan – försök lägga dig lite tidigare':'För lite – sikta på 8–10 h'}</span></p>
+ <div class="bars" aria-label="Sömn senaste 7 dagarna">${last7.map(x=>`<div class="${x.s>=8?'good':''}" style="height:${Math.min(100,x.s*10)}%" title="${x.s} h"></div>`).join('')}</div>
+ <div class="barl">${last7.map(x=>`<span>${DAYS[(parse(x.dk).getDay()+6)%7]}</span>`).join('')}</div></div>
+ <div class="card"><div class="row between"><h3>Vatten</h3><span class="small muted">${d.water||0} av ${wg} glas</span></div><div class="glasses" style="margin-top:10px">${[...Array(wg)].map((_,i)=>`<button class="glass ${i<(d.water||0)?'on':''}" data-water="${i+1}" aria-label="${i+1} glas"><i></i></button>`).join('')}</div><p class="small muted" style="margin-top:8px">${isTrainDay()?'Träningsdag: drick 2–3 glas extra.':'Ljust kiss = bra. Mörkt = drick mer.'}</p></div>
+ <div class="card"><h3>Mat</h3>${[['fr','Åt frukost'],['pre','Åt 1–3 h före träning'],['post','Åt inom 2 h efter träning']].map(m=>`<button class="exitem" data-meal="${m[0]}"><span>${m[1]}</span><span class="chk ${d[m[0]]?'on':''}" style="display:grid;border:1px solid var(--line)">${d[m[0]]?'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10l4 4 8-8" fill="none" stroke="currentColor" stroke-width="3"/></svg>':''}</span></button>`).join('')}</div>
+ <h2 style="margin-top:18px">Lär dig mer</h2><div class="card">${TIPS.map(t=>`<details class="tip"><summary>${esc(t.t)}</summary><p class="small">${esc(t.w)}</p><p class="small"><b>Gör så här:</b> ${esc(t.d)}</p></details>`).join('')}</div>`;
+}
+function isTrainDay(){const p=weekPlan();return !!p[(new Date().getDay()+6)%7]}
+
+/* ---------- Logg ---------- */
+function pb(id){let best=null;S.logs.forEach(l=>l.items.forEach(it=>{if(it.id!==id)return;it.sets.forEach(s=>{const kg=+s.kg||0,r=+s.reps||0;if(!r)return;if(!best||kg>best.kg||(kg===best.kg&&r>best.r))best={kg,r}})}));return best?(best.kg?best.kg+' kg × '+best.r:best.r+' reps'):null}
+function renderLogg(){
+ const mon=monday(new Date());
+ const weeks=[...Array(8)].map((_,i)=>{const a=addDays(mon,(i-7)*7);return {a,c:weekCount(a)}});
+ const max=Math.max(3,...weeks.map(w=>w.c));
+ const pl=planned(),streak=weekStreak(),st=stats();
+ const earnedN=BADGES.filter(b=>S.earned[b.id]).length;
+ const rep=report(repOff);
+ const ids=[...new Set(S.logs.flatMap(l=>l.items.map(i=>i.id)))];
+ const pbs=ids.map(id=>({id,b:pb(id)})).filter(x=>x.b).slice(0,12);
+ return `<h2 style="margin-top:6px">Din utveckling</h2>
+ <div class="stats" style="margin-top:10px"><div><b>${S.logs.length}</b><span>pass totalt</span></div><div><b>${weeks[7].c}/${pl||'–'}</b><span>denna vecka</span></div><div><b>${streak}</b><span>veckor i rad</span></div></div>
+ <div class="card"><div class="row between"><h3>Märken</h3><span class="small muted">${earnedN} av ${BADGES.length}</span></div><div class="badges">${BADGES.map(b=>{const on=!!S.earned[b.id];return `<div class="badge ${on?'':'off'}">${medal(b,on)}<b>${esc(b.n)}</b>${on?'Klart '+esc(S.earned[b.id].slice(5).split('-').reverse().join('/')):Math.min(st[b.k],b.g)+' / '+b.g}</div>`}).join('')}</div></div>
+ <div class="card"><h3>Veckorapport till ${esc(S.set.parent||'pappa')}</h3><p class="small muted">Tryck på Skicka och välj Meddelanden – gör det varje söndag.</p><div class="seg" style="margin-top:8px"><button data-rep="0" class="${repOff===0?'on':''}">Denna vecka</button><button data-rep="1" class="${repOff===1?'on':''}">Förra veckan</button></div><div class="report">${esc(rep.text)}</div><button class="primary" data-act="copyrep" style="width:100%">Skicka rapport</button>${S.reportSent===rep.key?'<p class="small muted" style="margin-top:6px">Kopierad.</p>':''}</div>
+ <div class="card"><h3>Pass per vecka</h3><div class="bars" style="grid-template-columns:repeat(8,minmax(0,1fr))">${weeks.map(w=>`<div class="${w.c>=pl&&pl?'good':''}" style="height:${w.c/max*100}%"></div>`).join('')}</div><div class="barl" style="grid-template-columns:repeat(8,minmax(0,1fr))">${weeks.map(w=>`<span>v${isoWeek(w.a)}</span>`).join('')}</div></div>
+ <div class="card"><h3>Personbästa</h3>${pbs.length?pbs.map(x=>`<div class="row between tip"><span>${esc((exById(x.id)||{}).n||'')}</span><b>${esc(x.b)}</b></div>`).join(''):'<p class="small muted">Logga vikter och reps så dyker dina rekord upp här.</p>'}</div>
+ <div class="card"><h3>Historik</h3>${S.logs.length?S.logs.slice().reverse().slice(0,30).map(l=>`<details class="tip"><summary>${esc(l.date)} · ${esc(l.title)}${l.feel?' · '+esc(l.feel):''}</summary>${l.items.map(it=>`<p class="small">${esc((exById(it.id)||{}).n||'')}: ${it.sets.filter(s=>s.reps).map(s=>esc((s.kg?s.kg+'×':'')+s.reps)).join(', ')||'–'}</p>`).join('')}<button class="sm ghost" data-dellog="${esc(String(l.ts))}">Ta bort passet</button></details>`).join(''):'<p class="small muted">Inga pass än. Första passet är det viktigaste!</p>'}</div>
+ <div class="card"><h3>Säkerhetskopia</h3><p class="small muted">Allt sparas bara i din mobil. Spara en backup ibland (t.ex. i iCloud Drive) – då kan du flytta allt till en ny mobil.</p>${storageOk?'':'<p class="small" style="color:var(--red)">Webbläsaren sparar inte just nu – kopiera koden innan du stänger.</p>'}<div class="row" style="margin-top:8px"><button class="sm" data-act="savefile">Spara backup</button><button class="sm" data-act="loadfile">Läs in backup</button><button class="sm ghost" data-act="export">Kopiera som text</button></div><input type="file" id="bkfile" accept="application/json,.json" hidden></div>`;
+}
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+
+/* ---------- Render & events ---------- */
+function render(){
+ $('#hello').textContent=S.set.name?'Kör hårt, '+S.set.name+'!':'Din träningskompis';
+ navRender();
+ const nb=checkBadges();if(nb.length&&!$('#sheet'))toast('Nytt märke: '+nb.map(b=>b.n).join(', '));
+ $('#app').innerHTML=tab==='vecka'?renderVecka():tab==='pass'?renderPass():tab==='ovn'?renderOvn():tab==='kropp'?renderKropp():renderLogg();
+ if(tab==='ovn'){const q=$('#q');q.oninput=()=>{bankQ=q.value;const pos=q.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)}}
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;const D=b.dataset;
+ if(D.tab){tab=D.tab;render();window.scrollTo(0,0);return}
+ if(D.act==='setup')return setupSheet();
+ if(D.act==='loadfile'){$('#bkfile').click();return}
+ if(D.act==='savefile'){const name='torulf-backup-'+today()+'.json',blob=new Blob([JSON.stringify(S)],{type:'application/json'});
+  const f=typeof File==='function'?new File([blob],name,{type:'application/json'}):null;
+  if(f&&navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(()=>{});return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);toast('Backup sparad');return}
+ if(D.rep){repOff=+D.rep;return render()}
+ if(D.act==='copyrep'){const r=report(repOff);const done=m=>{S.reportSent=r.key;save();render();toast(m)};
+  if(navigator.share){navigator.share({text:r.text}).then(()=>done('Skickat!'),err=>{if(err&&err.name!=='AbortError')navigator.clipboard.writeText(r.text).then(()=>done('Kopierat – klistra in i ett sms'))})}
+  else navigator.clipboard.writeText(r.text).then(()=>done('Kopierat – klistra in i ett sms'),()=>toast('Markera texten och kopiera själv'));return}
+ if(D.act==='close')return closeSheet();
+ if(D.act==='openday')return openDay(+D.day);
+ if(D.act==='newex')return newExSheet();
+ if(D.act==='newwo')return newWoSheet();
+ if(D.ex)return exSheet(D.ex);
+ if(D.filter){bankFilter=D.filter;return render()}
+ if(D.startwo){const w=S.custom.wo.find(x=>x.id===D.startwo);if(!w)return;if(S.active&&!confirmReplace())return;const info=progInfo()||{sch:SCHEMES.muskler[0],deload:false};return startSession(w.ex.map((id,j)=>{const ex=exById(id);return ex?{id,slot:j,sc:scheme(ex,info)}:null}).filter(Boolean),w.n,null,{region:'full',mode:'full'})}
+ if(D.assign)return assignSheet(D.assign);
+ if(D.delwo){S.custom.wo=S.custom.wo.filter(w=>w.id!==D.delwo);Object.keys(S.assign).forEach(k=>{if(S.assign[k]===D.delwo)delete S.assign[k]});save();return render()}
+ if(D.done){const [i,j]=D.done.split('-').map(Number),s=S.active.items[i].sets[j];s.done=!s.done;if(s.done&&!s.reps)s.reps=String(S.active.items[i].sc.hi);save();render();if(s.done)startTimer(COMP.includes((exById(S.active.items[i].id)||{}).p)?120:75);return}
+ if(D.addset){S.active.items[+D.addset].sets.push({kg:'',reps:'',done:false});save();return render()}
+ if(D.feel){S.active.feel=D.feel;save();return render()}
+ if(D.act==='finish'){const A=S.active;const items=A.items.map(it=>({id:it.id,sets:it.sets.filter(s=>s.done||s.reps).map(s=>({kg:s.kg,reps:s.reps}))})).filter(it=>it.sets.length);
+  if(!items.length){toast('Kryssa i minst ett set');return}
+  S.logs.push({ts:Date.now(),date:A.date,title:A.title,feel:A.feel||'',mode:A.mode||'full',warm:!!A.warm,stretch:!!A.stretch,place:A.place||'gym',items});S.active=null;timerEnd=0;drawTimer();save();
+  const nb=checkBadges();tab='logg';render();window.scrollTo(0,0);celebrate(A,nb);return}
+ if(D.rout)return routine(D.rout);
+ if(D.routdone){S.active[D.routdone]=true;save();return render()}
+ if(D.act==='cancel'){if(b.dataset.sure){S.active=null;timerEnd=0;drawTimer();save();return render()}b.dataset.sure='1';b.textContent='Säker? Tryck igen';return}
+ if(D.tadd){timerEnd+=30000;return drawTimer()}
+ if(D.tstop){timerEnd=0;clearInterval(timer);return drawTimer()}
+ if(D.sleep){const d=dly(today());d.sleep=Math.max(0,Math.min(14,(d.sleep||0)+(+D.sleep)));save();return render()}
+ if(D.water){const d=dly(today()),n=+D.water;d.water=d.water===n?n-1:n;save();return render()}
+ if(D.meal){const d=dly(today());d[D.meal]=!d[D.meal];save();return render()}
+ if(D.dellog){if(b.dataset.sure){S.logs=S.logs.filter(l=>String(l.ts)!==D.dellog);save();return render()}b.dataset.sure='1';b.textContent='Säker? Tryck igen';return}
+ if(D.act==='export'){const code=JSON.stringify(S);sheet(`<div class="row between"><h2>Din kod</h2><button class="sm ghost" data-act="close">Stäng</button></div><textarea id="ex" readonly style="min-height:160px">${esc(code)}</textarea><button class="primary" id="cp" style="width:100%;margin-top:10px">Kopiera</button>`);
+  $('#cp').onclick=()=>{navigator.clipboard.writeText(code).then(()=>toast('Kopierat – klistra in i ett sms'),()=>{$('#ex').select();toast('Markera och kopiera själv')})};return}
+ if(D.act==='import'){sheet(`<div class="row between"><h2>Klistra in kod</h2><button class="sm ghost" data-act="close">Stäng</button></div><p class="small muted">Ersätter allt som finns i appen nu.</p><textarea id="im"></textarea><button class="primary" id="doim" style="width:100%;margin-top:10px">Läs in</button>`);
+  $('#doim').onclick=()=>{try{const o=JSON.parse($('#im').value);if(!o||typeof o!=='object'||!Array.isArray(o.logs))throw 0;S=Object.assign(fresh(),o);save();closeSheet();render();toast('Inläst')}catch(err){toast('Koden fungerade inte')}};return}
+});
+document.addEventListener('change',e=>{
+ const t=e.target;if(t.id!=='slb'&&t.id!=='slu')return;
+ const d=dly(today());d[t.id==='slb'?'bed':'up']=t.value;
+ if(d.bed&&d.up){const [bh,bm]=d.bed.split(':').map(Number),[uh,um]=d.up.split(':').map(Number);let m=(uh*60+um)-(bh*60+bm);if(m<=0)m+=1440;d.sleep=Math.round(m/6)/10;d.min=m}else{d.sleep=0;d.min=0}
+ save();render();
+});
+document.addEventListener('input',e=>{
+ const t=e.target,A=S.active;if(!A)return;
+ if(t.dataset.kg){const [i,j]=t.dataset.kg.split('-').map(Number);A.items[i].sets[j].kg=t.value.replace(',','.');save()}
+ if(t.dataset.rp){const [i,j]=t.dataset.rp.split('-').map(Number);A.items[i].sets[j].reps=t.value;save()}
+});
+document.addEventListener('change',e=>{
+ if(e.target.id!=='bkfile'||!e.target.files[0])return;
+ e.target.files[0].text().then(t=>{const o=JSON.parse(t);if(!o||typeof o!=='object'||!Array.isArray(o.logs))throw 0;S=Object.assign(fresh(),o);save();render();toast('Backup inläst')}).catch(()=>toast('Filen fungerade inte'));
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+S.opens=S.opens||{};S.opens[today()]=true;save();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){S.opens[today()]=true;save();if(!$('#sheet')&&!document.activeElement.matches('input,textarea'))render()}});
+if(S.active)tab='pass';
+render();
+setInterval(()=>{if(!$('#sheet')&&!document.activeElement.matches('input,textarea')&&(tab==='vecka'||tab==='kropp'))render()},300000);
+}
+</script>
+</body>
+</html>
